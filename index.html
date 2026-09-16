@@ -696,5 +696,13 @@ $('langsel').value=lang;buildSteps();$('simlabel').textContent=t('sim');go(0);
 (function(){const bm=location.hash.match(/brand=([^&]+)/);if(bm){BRAND=decodeURIComponent(bm[1]);document.title=BRAND+' · Hua';}if(/shot=1/.test(location.hash))document.body.classList.add('shot');const m=location.hash.match(/step=(\d+)/);const l=location.hash.match(/lang=(\w+)/);if(l&&I[l[1]]){lang=l[1];$('langsel').value=lang;buildSteps();$('simlabel').textContent=t('sim');}if(m){settings.tts=false;applySettings();go(+m[1]);}
 if(/hc=1/.test(location.hash)){settings.hc=true;}if(/big=1/.test(location.hash)){settings.big=true;}applySettings();if(/settings=1/.test(location.hash))openSettings();if(/noack=1/.test(location.hash)){faults.noack=true;$('f-noack').checked=true;go(cur);}if(/offline=1/.test(location.hash)){faults.offline=true;$('f-offline').checked=true;applyOffline();}if(/overview=1/.test(location.hash))openOverview();if(/source=1/.test(location.hash))openSource();if(/desk=1/.test(location.hash))openDesk();if(/airport=1/.test(location.hash))openAirport();if(/consent=1/.test(location.hash))askConsent();if(/toast=1/.test(location.hash))inputNotYet();if(/end=del/.test(location.hash))endChoice('del');if(/surfaces=1/.test(location.hash))setSurf(true);if(/staff=1/.test(location.hash))openStaffCard();if(/food=1/.test(location.hash))pickFood('tea');if(/leave=(\w+)/.test(location.hash))pickLeave(location.hash.match(/leave=(\w+)/)[1]);if(/fbstep=(\d+)/.test(location.hash))fbChoose(+location.hash.match(/fbstep=(\d+)/)[1]);})();
 </script>
+
+<div id="seeya-nav" style="position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#14213d;color:#fff;font:13px/1.4 -apple-system,Helvetica,sans-serif;padding:8px 14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+  <span style="opacity:.75">Seeya demo · all data simulated</span>
+  <span>this page: the passenger's phone (→ next beat, P presentation, A auto-play)</span>
+  <a href="desk.html" target="_blank" style="color:#9ec1ff">airport coordination desk ↗</a>
+  <a href="airline.html" target="_blank" style="color:#9ec1ff">airline view ↗</a>
+  <a href="Seeya-demo-walkthrough.pdf" target="_blank" style="color:#9ec1ff">walkthrough PDF ↗</a>
+</div>
 </body>
 </html>
