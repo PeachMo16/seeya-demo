@@ -111,7 +111,7 @@ function render(){document.documentElement.lang=L==='zh'?'zh-CN':L;$('title').te
  <div class="card"><h2>${t('c2')}</h2><div class="b"><div class="kv"><div class="k amber"><div class="v">9</div><div class="l">${t('k2')[0]}</div></div><div class="k green"><div class="v">${wi}</div><div class="l">${t('k2')[1]}</div></div><div class="k red"><div class="v">${REQ.length-wi}</div><div class="l">${t('k2')[2]}</div></div></div>
   <div class="hd"><span>${t('hd')[0]}</span><span>${t('hd')[1]}</span><span style="text-align:right">${t('hd')[2]}</span></div><div class="gantt">${REQ.map(r=>`<div class="g"><b>${r[0]}</b>${bar(r[2],r[2]<=win)}<span class="t">${r[2]} min · ${r[3]}</span></div>`).join('')}</div>
   <div class="score">${sc('A',A)}${sc('B',B)}</div></div></div>
- <div class="card full"><h2>${t('c3')}</h2><div class="b"><div class="two"><div class="tl without"><h3>${t('without')}</h3>${t('wo').map(e=>`<div class="e"><span class="tm">${e[0]}</span><span>${e[1]}</span></div>`).join('')}</div><div class="tl with"><h3>${t('with')}</h3>${t('wi').map(e=>`<div class="e"><span class="tm">${e[0]}</span><span>${e[1]}</span></div>`).join('')}</div></div><p class="p">${t('p3')}</p></div></div>
+ 
  <div class="card"><h2>${t('c4')}</h2><div class="b"><div class="tl"><div class="e"><span class="tm">15:07</span><span>${t('cev')}</span></div></div><p class="p">${t('p4')}</p></div></div>
  <div class="card"><h2>${t('c5')}</h2><div class="b">${t('metrics').map(m=>`<div class="metric"><span class="n">${m[0]}</span><span class="d">${m[1]}</span><span class="v">${t('blank')}</span></div>`).join('')}</div></div>
  <div class="honest">${t('honest')}<div class="link">${t('link')}</div></div>`;}
