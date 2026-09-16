@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>document.documentElement.classList.add("js")</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seeya · Airline view · one flight (simulated)</title>
+<style>
+:root{--ink:#14213d;--muted:#5b6b82;--blue:#1b5fd1;--soft:#eef3fb;--line:#dbe2ec;--green:#1e7d4f;--green-bg:#e7f5ec;--amber:#8a5a00;--amber-bg:#fff3d6;--red:#b3261e;--red-bg:#fdecea}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:var(--ink);background:#f3f5f9;font-size:14px}
+.top{background:#3a1d5e;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.top h1{font-size:16px;margin:0;font-weight:600}
+.top .sim{font-size:12px;background:#ffd166;color:#14213d;padding:3px 8px;border-radius:6px;font-weight:600}
+.top select{background:#4b2b74;color:#fff;border:1px solid #6a4a94;border-radius:6px;padding:5px 8px;font-size:13px;margin-left:auto}
+.wrap{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card h2{font-size:13px;margin:0;padding:10px 14px;border-bottom:1px solid var(--line);color:var(--muted);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+.card .b{padding:12px 14px}
+.full{grid-column:1/-1}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.k{background:var(--soft);border-radius:10px;padding:10px 12px}.k .v{font-size:24px;font-weight:700;line-height:1.1}.k .l{font-size:12px;color:var(--muted)}
+.k.amber{background:var(--amber-bg)}.k.amber .v{color:var(--amber)}.k.green{background:var(--green-bg)}.k.green .v{color:var(--green)}.k.red{background:var(--red-bg)}.k.red .v{color:var(--red)}
+.p{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 0}
+.gantt{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.g{display:grid;grid-template-columns:50px 1fr 90px;gap:8px;align-items:center;font-size:12px}
+.g .bar{position:relative;height:16px;background:#eef0f3;border-radius:4px;overflow:hidden}
+.g .bar i{position:absolute;top:0;bottom:0;border-radius:4px}
+.g .bar i.w{background:#cfd8e6}.g .bar i.ok{background:var(--green)}.g .bar i.bad{background:var(--red)}
+.g .bar .win{position:absolute;top:0;bottom:0;left:0;width:var(--win);border-right:2px dashed #8a5a00;opacity:.6}
+.g .t{color:var(--muted);text-align:right;white-space:nowrap}
+.hd{display:grid;grid-template-columns:50px 1fr 90px;gap:8px;font-size:11px;color:var(--muted);margin-top:4px}
+.score{display:flex;gap:10px;margin-top:8px}
+.sc{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px}.sc b{font-size:15px}.sc .r{font-size:12px;color:var(--muted);margin-top:4px}.sc .big{font-size:22px;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tl{border:1px solid var(--line);border-radius:10px;padding:10px}.tl h3{margin:0 0 6px;font-size:14px}.tl .e{display:flex;gap:8px;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line)}.tl .e .tm{width:40px;color:var(--muted);flex:none}
+.tl.with h3{color:var(--green)}.tl.without h3{color:var(--red)}
+.metric{display:grid;grid-template-columns:1fr 1fr 110px;gap:8px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--line)}.metric .n{font-weight:600}.metric .d{color:var(--muted)}.metric .v{text-align:right;color:#aab3c0;font-style:italic}
+.honest{grid-column:1/-1;background:var(--amber-bg);border:1px solid #efd9a0;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55}
+.link{font-size:12px;color:var(--muted);margin-top:8px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+
+.nojs{margin:16px;padding:14px 16px;background:#fff3d6;color:#5a3a00;border:1px solid #efd9a0;border-radius:12px;font-size:15px;line-height:1.5}html.js .nojs{display:none}
+</style>
+</head>
+<body>
+<div class="nojs" role="note"><b>This is an interactive demo.</b> If you can read this, the page is being previewed without JavaScript (for example inside an email app or a phone's file preview), so nothing else will appear. Please download the file and open it in Chrome, Safari or Edge on a computer. A PDF walkthrough is included in the same folder for phones.</div>
+<div class="top"><h1 id="title"></h1><span class="sim" id="simtag"></span><select id="lang"><option value="en">English</option><option value="fr">Français</option></select></div>
+<div class="wrap" id="wrap"></div>
+<script>
+const T={
+en:{title:'Airline view · MK888 PVG→YYZ · assisted arrivals',sim:'Research demo · all data simulated',
+ c1:'Before landing · what the airline knows',c2:'After landing · what actually happened',c3:'One day, two ways · same flight, same nine passengers',c4:'Complaint ↔ event',c5:'What this page shows after a pilot · metric definitions, values blank on purpose',
+ k1:['declared (SSR)','predicted on arrival · from past flights','handler staff suggested'],
+ p1:'Our working assumption, to be checked with an airline: before landing it mainly sees the declared count. The prediction column is what a shared ledger could produce after a season of data: for this route and hour, how many asked on arrival. Both numbers here are placeholders.',
+ k2:['asked on arrival','within the 10-min window','over the window'],
+ hd:['ID','sent → accepted · dashed line = 10-min window','handler'],
+ score:'Handler scorecard · this flight',within:'within window',avgacc:'avg. minutes to accept',paxmet:'passenger-confirmed meetings',
+ without:'Without a shared ledger',with:'With the ledger',
+ wo:[['14:02','Passenger at gate; nobody knows she needs a wheelchair'],['14:15','She reaches the help desk after walking the pier'],['14:15','Desk phones the handler; request logged on paper'],['14:31','Handler arrives; passenger has waited ~29 min'],['15:40','Complaint filed later; airline has no timeline to check']],
+ wi:[['14:02','Request sent from the gate; handler console shows it'],['14:03','Handler accepts · timer running against the window'],['14:07','On site; passenger confirms she was met'],['14:49','Carousel changed; passenger told; event logged'],['15:07','Passenger feedback attached to the 14:49 event']],
+ p3:'This is a simulated scenario, not a measurement. The minutes are chosen to show where the difference would come from: the request leaving the gate at 14:02 instead of the help desk at 14:15, and a timeline that exists when a complaint arrives.',
+ cev:'Passenger feedback 15:07 · “wrong information” · attached to event 14:49 (carousel 14→16, airport screen)',
+ p4:'The hypothesis: a complaint that points at one timestamped event could be answered from the record rather than from recollection on both sides. Whether that changes complaint handling is something a pilot would have to show.',
+ metrics:[['Share of assisted waits within the contracted window, per handler','minutes from sent to accepted, per request, on the desk clock'],['Unacknowledged-request rate','requests with no acknowledgement within the window'],['Minutes sent → acknowledged → accepted','three durations from the ledger, recorded_at'],['Passenger-confirmed meetings','provider on_site followed by the passenger’s own passenger_met'],['Declared vs on-arrival demand, per route and hour','SSR count vs requests opened after landing'],['Complaints with a matching event','passenger feedback linked to a ledger event']],
+ blank:'measured in pilot',
+ honest:'What this page is. It is what an airline could see once its ground handler writes accept / en route / on site into a shared ledger. Nothing here is measured: the counts, the minutes, the handler names and the “without / with” day are simulated to show where the numbers would come from. No claim is made about how much complaints or costs would change; those are the metrics a pilot would produce, listed above with their definitions and left blank.',
+ link:'Companion pages: index.html (passenger), desk.html (airport coordination desk).'},
+fr:{title:'Vue compagnie · MK888 PVG→YYZ · arrivées assistées',sim:'Démo de recherche · données simulées',
+ c1:'Avant l\'atterrissage · ce que la compagnie sait',c2:'Après l\'atterrissage · ce qui s\'est passé',c3:'Une journée, deux façons · même vol, mêmes neuf passagers',c4:'Plainte ↔ événement',c5:'Ce que cette page montre après un pilote · définitions des indicateurs, valeurs laissées vides',
+ k1:['déclarés (SSR)','prévus à l\'arrivée · d\'après les vols passés','agents d\'escale suggérés'],
+ p1:'Notre hypothèse de travail, à vérifier avec une compagnie : avant l\'atterrissage elle voit surtout le nombre déclaré. La colonne « prévus » est ce qu\'un registre produit après une saison de données : pour cette route et cette heure, combien ont demandé à l\'arrivée. Les deux chiffres sont des espaces réservés.',
+ k2:['demandés à l\'arrivée','dans la fenêtre de 10 min','hors fenêtre'],
+ hd:['ID','envoyée → acceptée · pointillé = fenêtre de 10 min','assistant'],
+ score:'Fiche de l\'assistant en escale · ce vol',within:'dans la fenêtre',avgacc:'minutes moyennes avant acceptation',paxmet:'rencontres confirmées par le passager',
+ without:'Sans registre partagé',with:'Avec le registre',
+ wo:[['14:02','Passagère à la porte ; personne ne sait qu\'il lui faut un fauteuil'],['14:15','Elle atteint le comptoir d\'aide après avoir parcouru la jetée'],['14:15','Le comptoir appelle l\'assistant ; demande notée sur papier'],['14:31','L\'assistant arrive ; la passagère a attendu ~29 min'],['15:40','Plainte déposée plus tard ; la compagnie n\'a aucune chronologie à vérifier']],
+ wi:[['14:02','Demande envoyée depuis la porte ; la console de l\'assistant l\'affiche'],['14:03','L\'assistant accepte · chrono contre la fenêtre'],['14:07','Sur place ; la passagère confirme avoir été rejointe'],['14:49','Carrousel changé ; passagère informée ; événement enregistré'],['15:07','Retour de la passagère rattaché à l\'événement de 14:49']],
+ p3:'Scénario simulé, pas une mesure. Les minutes sont choisies pour montrer d\'où viendrait la différence : la demande qui quitte la porte à 14:02 au lieu du comptoir à 14:15, et une chronologie qui existe quand une plainte arrive.',
+ cev:'Retour de la passagère 15:07 · « mauvaise information » · rattaché à l\'événement 14:49 (carrousel 14→16, écran de l\'aéroport)',
+ p4:'L\'hypothèse : une plainte qui pointe un événement horodaté pourrait être traitée à partir du registre plutôt que des souvenirs de chaque côté. Un pilote devrait le montrer.',
+ metrics:[['Part des attentes assistées dans la fenêtre contractuelle, par assistant','minutes de « envoyée » à « acceptée », par demande, horloge du poste'],['Taux de demandes sans accusé','demandes sans accusé dans la fenêtre'],['Minutes envoyée → accusée → acceptée','trois durées du registre, recorded_at'],['Rencontres confirmées par le passager','on_site du fournisseur suivi du passenger_met du passager'],['Demande déclarée vs à l\'arrivée, par route et heure','nombre de SSR vs demandes ouvertes après l\'atterrissage'],['Plaintes avec un événement correspondant','retour du passager lié à un événement du registre']],
+ blank:'mesuré en pilote',
+ honest:'Ce qu\'est cette page. C\'est ce qu\'une compagnie pourrait voir une fois que son assistant en escale écrit accepté / en route / sur place dans un registre partagé. Rien ici n\'est mesuré : les comptes, les minutes, les noms d\'assistants et la journée « sans / avec » sont simulés pour montrer d\'où viendraient les chiffres. Aucune affirmation n\'est faite sur l\'évolution des plaintes ou des coûts ; ce sont les indicateurs qu\'un pilote produirait, listés ci-dessus avec leurs définitions et laissés vides.',
+ link:'Pages associées : index.html (passager), desk.html (poste de coordination).'},
+zh:{title:'航司视角 · MK888 浦东→多伦多 · 协助到达',sim:'研究演示 · 全部为模拟数据',
+ c1:'落地前 · 航司知道什么',c2:'落地后 · 实际发生了什么',c3:'同一天两种过法 · 同一班飞机同样九个人',c4:'投诉 ↔ 事件',c5:'pilot 之后这页会显示什么 · 指标定义，数值故意留空',
+ k1:['提前申报（SSR）','预测到了才要 · 来自历史航班','建议地服备人'],
+ p1:'我们的工作假设，要跟航司核对：落地前它主要只看得见申报数。"预测"那一列是共享账本跑过一个季度以后才可能有的东西：这条航线这个时段，历史上有多少人到了才要。这里两个数都是占位。',
+ k2:['到了才要','10 分钟窗口内','超窗'],
+ hd:['编号','发出 → 接受 · 虚线 = 10 分钟窗口','地服'],
+ score:'地服记分卡 · 本班',within:'窗口内',avgacc:'平均接单分钟',paxmet:'旅客确认见到',
+ without:'没有共享账本',with:'有账本',
+ wo:[['14:02','旅客在登机口，没人知道她要轮椅'],['14:15','她自己走完走廊到了服务台'],['14:15','服务台打电话给地服，纸上记一笔'],['14:31','地服到了，旅客等了约 29 分钟'],['15:40','事后投诉，航司没有时间线可查']],
+ wi:[['14:02','请求从登机口发出，地服控制台显示'],['14:03','地服接单 · 计时器对着窗口跑'],['14:07','到场；旅客自己确认见到了'],['14:49','转盘改号，已告知旅客，事件入账'],['15:07','旅客反馈挂在 14:49 那条事件上']],
+ p3:'这是模拟情景，不是测量结果。分钟数是挑出来说明差别从哪来的：请求 14:02 在登机口就发出而不是 14:15 在服务台，以及投诉来的时候有一条时间线在。',
+ cev:'旅客反馈 15:07 · "信息不对" · 挂在 14:49 那条事件上（转盘 14→16，机场屏幕）',
+ p4:'假设是：一条投诉对着一个带时间戳的事件，可以按记录答而不是按双方回忆答。这会不会改变投诉处理，要 pilot 才能说明。',
+ metrics:[['协助等待在合同窗口内的比例，按地服分','每条请求从发出到接受的分钟数，按协调台时钟'],['无人确认率','窗口内没有任何确认的请求'],['发出 → 确认 → 接受 的分钟数','账本里三段时长，按 recorded_at'],['旅客确认的碰面','服务商 on_site 之后旅客自己写的 passenger_met'],['申报 vs 到了才要，按航线和时段','SSR 数对落地后新开的请求数'],['能对上事件的投诉','挂在账本事件上的旅客反馈']],
+ blank:'pilot 里测',
+ honest:'这一页是什么。是航司的地服把接单 / 在路上 / 到场写进共享账本以后，航司能看到的东西。这里没有一个数是测过的：计数、分钟、地服名字、"没有 / 有"那一天，都是为了说明数字会从哪来而模拟的。不声称投诉或成本会变多少；那些是 pilot 才会产出的指标，上面列了定义，格子留空。',
+ link:'配套页面：index.html（旅客）、desk.html（机场协调台）。'}};
+let L='en';const t=k=>T[L][k];const $=id=>document.getElementById(id);
+const REQ=[['A11',0,1,'A',true],['A12',0,1,'A',true],['A14',0,12,'B',true],['A15',0,48,'B',false],['A17',0,1,'A',true],['A21',0,2,'A',true],['A22',0,4,'A',true],['A23',0,9,'A',true],['A24',0,14,'B',false]];
+function render(){document.documentElement.lang=L==='zh'?'zh-CN':L;$('title').textContent=t('title');$('simtag').textContent=t('sim');
+ const win=10, maxM=50; const bar=(m,ok)=>`<div class="bar" style="--win:${win/maxM*100}%"><i class="${ok?'ok':'bad'}" style="left:0;width:${Math.min(m,maxM)/maxM*100}%"></i><span class="win"></span></div>`;
+ const A=REQ.filter(r=>r[3]==='A'),B=REQ.filter(r=>r[3]==='B');const wi=REQ.filter(r=>r[2]<=win).length;
+ const sc=(name,rs)=>`<div class="sc"><b>${L==='zh'?'地服':L==='fr'?'Assistant':'Handler'} ${name}</b><div class="big">${rs.filter(r=>r[2]<=win).length}/${rs.length}</div><div class="r">${t('within')}</div><div class="r">${t('avgacc')}: ${(rs.reduce((a,r)=>a+r[2],0)/rs.length).toFixed(1)}</div><div class="r">${t('paxmet')}: ${rs.filter(r=>r[4]).length}/${rs.length}</div></div>`;
+ $('wrap').innerHTML=`
+ <div class="card"><h2>${t('c1')}</h2><div class="b"><div class="kv"><div class="k"><div class="v">2</div><div class="l">${t('k1')[0]}</div></div><div class="k amber"><div class="v">8 <small style="font-size:13px">±3</small></div><div class="l">${t('k1')[1]}</div></div><div class="k"><div class="v">3</div><div class="l">${t('k1')[2]}</div></div></div><p class="p">${t('p1')}</p></div></div>
+ <div class="card"><h2>${t('c2')}</h2><div class="b"><div class="kv"><div class="k amber"><div class="v">9</div><div class="l">${t('k2')[0]}</div></div><div class="k green"><div class="v">${wi}</div><div class="l">${t('k2')[1]}</div></div><div class="k red"><div class="v">${REQ.length-wi}</div><div class="l">${t('k2')[2]}</div></div></div>
+  <div class="hd"><span>${t('hd')[0]}</span><span>${t('hd')[1]}</span><span style="text-align:right">${t('hd')[2]}</span></div><div class="gantt">${REQ.map(r=>`<div class="g"><b>${r[0]}</b>${bar(r[2],r[2]<=win)}<span class="t">${r[2]} min · ${r[3]}</span></div>`).join('')}</div>
+  <div class="score">${sc('A',A)}${sc('B',B)}</div></div></div>
+ <div class="card full"><h2>${t('c3')}</h2><div class="b"><div class="two"><div class="tl without"><h3>${t('without')}</h3>${t('wo').map(e=>`<div class="e"><span class="tm">${e[0]}</span><span>${e[1]}</span></div>`).join('')}</div><div class="tl with"><h3>${t('with')}</h3>${t('wi').map(e=>`<div class="e"><span class="tm">${e[0]}</span><span>${e[1]}</span></div>`).join('')}</div></div><p class="p">${t('p3')}</p></div></div>
+ <div class="card"><h2>${t('c4')}</h2><div class="b"><div class="tl"><div class="e"><span class="tm">15:07</span><span>${t('cev')}</span></div></div><p class="p">${t('p4')}</p></div></div>
+ <div class="card"><h2>${t('c5')}</h2><div class="b">${t('metrics').map(m=>`<div class="metric"><span class="n">${m[0]}</span><span class="d">${m[1]}</span><span class="v">${t('blank')}</span></div>`).join('')}</div></div>
+ <div class="honest">${t('honest')}<div class="link">${t('link')}</div></div>`;}
+$('lang').onchange=e=>{L=e.target.value;render();};
+(function(){const l=location.hash.match(/lang=(\w+)/);if(l&&T[l[1]])L=l[1];if(L==='zh'){$('lang').insertAdjacentHTML('beforeend','<option value="zh">中文</option>');}$('lang').value=L;render();})();
+</script>
+</body>
+</html>

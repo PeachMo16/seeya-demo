@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>document.documentElement.classList.add("js")</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seeya · Airport coordination desk (simulated)</title>
+<style>
+:root{--ink:#14213d;--muted:#5b6b82;--blue:#1b5fd1;--soft:#eef3fb;--line:#dbe2ec;--green:#1e7d4f;--green-bg:#e7f5ec;--amber:#8a5a00;--amber-bg:#fff3d6;--red:#b3261e;--red-bg:#fdecea}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:var(--ink);background:#f3f5f9;font-size:14px}
+.top{background:#14213d;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:16px}
+.top h1{font-size:16px;margin:0;font-weight:600}
+.top .sim{font-size:12px;background:#ffd166;color:#14213d;padding:3px 8px;border-radius:6px;font-weight:600}
+.top .clock{margin-left:auto;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600}
+.top select,.top button{background:#2b3552;color:#fff;border:1px solid #3d4a6b;border-radius:6px;padding:5px 8px;font-size:13px}
+.wrap{padding:16px 20px;display:grid;grid-template-columns:1fr 380px;gap:16px}
+.ind{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.k{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.k .v{font-size:26px;font-weight:700;line-height:1.1}.k .l{font-size:12px;color:var(--muted);margin-top:2px}
+.k.red .v{color:var(--red)}.k.amber .v{color:var(--amber)}.k.green .v{color:var(--green)}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card h2{font-size:13px;margin:0;padding:10px 14px;border-bottom:1px solid var(--line);color:var(--muted);letter-spacing:.04em;text-transform:uppercase;font-weight:600;display:flex;gap:10px;align-items:center}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:13px}
+th{background:var(--soft);color:var(--muted);font-weight:600;font-size:12px}
+tr.row{cursor:pointer}tr.row:hover{background:#f7f9fc}tr.row.sel{background:var(--soft)}
+tr.row.over td{background:var(--red-bg)}
+.st{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#eef0f3;color:#556}
+.st.acc{background:var(--green-bg);color:var(--green)}.st.wait{background:var(--amber-bg);color:var(--amber)}.st.bad{background:var(--red-bg);color:var(--red)}.st.done{background:#e8ebf0;color:#445}
+.timer{font-variant-numeric:tabular-nums;font-weight:600}.timer.over{color:var(--red)}
+.det{padding:12px 14px}
+.det .who{font-size:16px;font-weight:700}.det .sub{color:var(--muted);font-size:13px;margin-bottom:8px}
+.ev{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.ev .tm{width:44px;color:var(--muted);flex:none;font-variant-numeric:tabular-nums}.ev .b{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.ev.bad{color:var(--red)}
+.note{font-size:12px;color:var(--muted);padding:10px 14px;line-height:1.5;border-top:1px solid var(--line)}
+.honest{grid-column:1/-1;background:var(--amber-bg);border:1px solid #efd9a0;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55}
+.fl{font-size:13px;color:var(--muted);margin-left:auto}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.ind{grid-template-columns:repeat(3,1fr)}}
+
+.nojs{margin:16px;padding:14px 16px;background:#fff3d6;color:#5a3a00;border:1px solid #efd9a0;border-radius:12px;font-size:15px;line-height:1.5}html.js .nojs{display:none}
+</style>
+</head>
+<body>
+<div class="nojs" role="note"><b>This is an interactive demo.</b> If you can read this, the page is being previewed without JavaScript (for example inside an email app or a phone's file preview), so nothing else will appear. Please download the file and open it in Chrome, Safari or Edge on a computer. A PDF walkthrough is included in the same folder for phones.</div>
+<div class="top"><h1 id="title"></h1><span class="sim" id="simtag"></span><span class="fl" id="follow"></span><select id="lang"><option value="en">English</option><option value="fr">Français</option></select><label style="font-size:12px;opacity:.85"><span id="momlab"></span> <select id="stepsel"></select></label><label style="font-size:12px"><input type="checkbox" id="noack"> <span id="noacklab"></span></label><span class="clock" id="clock">14:02</span></div>
+<div class="wrap">
+  <div class="ind" id="ind"></div>
+  <div class="card"><h2 id="h2req"></h2><table><thead id="thead"></thead><tbody id="rows"></tbody></table><div class="note" id="tnote"></div></div>
+  <div class="card"><h2 id="h2det"></h2><div class="det" id="det"></div><div class="note" id="dnote"></div></div>
+  <div class="honest" id="honest"></div>
+</div>
+<script>
+const T={
+en:{moment:'Moment in the passenger story',title:'Airport coordination desk · T1 arrivals',sim:'Research demo · all data simulated',follow:'Follows the phone demo when it is open in this browser (now at step {s}); otherwise pick the moment on the right',noack:'provider silent on A17',
+ req:'Live requests · airport surfaces',det:'Selected request · events only',
+ th:['ID','Sent','Where','Need','Language','Taken by','Status','Timer'],
+ k:['Flight MK888 landed 13:55','declared in advance','asked on arrival','accepted within 10 min','over the window, not accepted','escalated · proposed path, receiving team to be confirmed'],
+ tnote:'Timer runs from “sent” on the desk clock until “accepted”. “Acknowledged” does not stop it: received is not accepted. Red = past the 10-minute window with no acceptance. Window value is a placeholder; the real one is in the provider contract.',
+ dnote:'No conversation, no shopping preferences, no location trail. Each line is one event with who wrote it and on what basis.',
+ honest:'What this desk can and cannot see. It sees requests that start on the airport’s own surfaces (help points, the welcome booth, Passenger Care, this app). Requests that run inside an airline’s own process do not appear until that airline or its ground handler joins. Every number here is simulated; “10 minutes”, “MK888” and the counts are placeholders for the demo, not Pearson facts.',
+ needs:{wc:'Wheelchair',lang:'Language (Mandarin)',way:'Wayfinding',int:'Interpreter · border',bag:'Baggage help'},
+ st:{sent:'sent',disp:'displayed',ack:'acknowledged',acc:'accepted',ass:'assigned',route:'en route',site:'on site',met:'passenger met',done:'completed',exp:'expired · no acknowledgement',esc:'escalated',fb:'passenger feedback'},
+ basis:{sys:'system-observed',con:'console-displayed',party:'party-confirmed',actor:'actor-stated',pax:'passenger-confirmed'},
+ who:{prov:'Provider A (simulated)',prov2:'Provider B (simulated)',pc:'Passenger Care',booth:'Welcome booth',none:'—'},
+ where:{f73:'Gate F73',f68:'Gate F68',e75:'Gate E75',imm:'Before immigration',bag:'Baggage hall',hall:'Arrivals hall'},
+ selHint:'Select a row.',pax:'Passenger',code:'Journey code',langv:'Mandarin · large text',fbline:'Passenger feedback · 14:49 step “wrong information”',
+ evA17:'Wheelchair request · Gate F73',evA18:'Language request · before immigration',evBag:'Carousel 14→16 · passenger told'},
+fr:{moment:'Instant du récit passager',title:'Poste de coordination de l\'aéroport · arrivées T1',sim:'Démo de recherche · données simulées',follow:'Suit la démo téléphone si elle est ouverte dans ce navigateur (étape {s}) ; sinon choisissez l\'instant à droite',noack:'fournisseur silencieux sur A17',
+ req:'Demandes en cours · surfaces de l\'aéroport',det:'Demande sélectionnée · événements seulement',
+ th:['ID','Envoyée','Où','Besoin','Langue','Prise par','Statut','Chrono'],
+ k:['Vol MK888 atterri 13:55','déclarées à l\'avance','demandées à l\'arrivée','acceptées sous 10 min','hors fenêtre, non acceptées','transmises · parcours proposé, équipe à confirmer'],
+ tnote:'Le chrono part de « envoyée » sur l\'horloge du poste jusqu\'à « acceptée » ; « accusée » ne l\'arrête pas : reçu n\'est pas accepté. Rouge = fenêtre de 10 min dépassée sans acceptation. La valeur de la fenêtre est un espace réservé ; la vraie est dans le contrat du fournisseur.',
+ dnote:'Pas de conversation, pas de préférences d\'achat, pas de trace de position. Chaque ligne est un événement, avec qui l\'a écrit et sur quelle base.',
+ honest:'Ce que ce poste voit et ne voit pas. Il voit les demandes qui naissent sur les surfaces de l\'aéroport (bornes d\'aide, kiosque d\'accueil, Passenger Care, cette appli). Les demandes qui suivent le processus propre d\'une compagnie n\'apparaissent pas tant que cette compagnie ou son assistant en escale ne participe pas. Tous les chiffres sont simulés ; « 10 minutes », « MK888 » et les comptes sont des espaces réservés, pas des faits de Pearson.',
+ needs:{wc:'Fauteuil roulant',lang:'Langue (mandarin)',way:'Orientation',int:'Interprète · frontière',bag:'Aide bagages'},
+ st:{sent:'envoyée',disp:'affichée',ack:'accusée',acc:'acceptée',ass:'assignée',route:'en route',site:'sur place',met:'passager rejoint',done:'terminée',exp:'expirée · sans accusé',esc:'transmise',fb:'retour du passager'},
+ basis:{sys:'observé par le système',con:'affiché console',party:'confirmé par la partie',actor:'déclaré par l\'acteur',pax:'confirmé par le passager'},
+ who:{prov:'Fournisseur A (simulé)',prov2:'Fournisseur B (simulé)',pc:'Passenger Care',booth:'Kiosque d\'accueil',none:'—'},
+ where:{f73:'Porte F73',f68:'Porte F68',e75:'Porte E75',imm:'Avant le contrôle',bag:'Salle des bagages',hall:'Hall des arrivées'},
+ selHint:'Sélectionnez une ligne.',pax:'Passagère',code:'Code de trajet',langv:'Mandarin · gros caractères',fbline:'Retour de la passagère · étape 14:49 « mauvaise information »',
+ evA17:'Demande de fauteuil · porte F73',evA18:'Demande de langue · avant le contrôle',evBag:'Carrousel 14→16 · passagère informée'},
+zh:{moment:'旅客故事走到哪一拍',title:'机场协调台 · T1 到达',sim:'研究演示 · 全部为模拟数据',follow:'手机 demo 在这个浏览器里开着时自动跟随（现在第 {s} 拍）；不然在右边选一拍',noack:'A17 服务商无人接单',
+ req:'活着的请求 · 机场自己的地面',det:'选中的请求 · 只有事件',
+ th:['编号','发出','在哪','需要','语言','谁接','状态','计时'],
+ k:['MK888 落地 13:55','提前申报','到了才要','10 分钟内接单','超窗未接','已升级 · 拟议流程，接收团队待确认'],
+ tnote:'计时从"已发送"按协调台时钟起算，到"已接受"停；"已确认收到"不停表，收到不等于接受。红色 = 超过 10 分钟窗口仍无人接。10 分钟是占位，真实窗口在服务商合同里。',
+ dnote:'没有对话，没有购物偏好，没有位置轨迹。每一行是一个事件，写了谁记的、依据是什么。',
+ honest:'这张桌子能看见什么、看不见什么。它看见从机场自己的地面发起的请求（help point、迎新台、Passenger Care、这个 app）。走在航司自己流程里的请求，在航司或其地服接入之前不会出现。这里每个数字都是模拟的；"10 分钟"、"MK888"和各项计数都是演示占位，不是 Pearson 的事实。',
+ needs:{wc:'轮椅',lang:'语言（中文）',way:'找路',int:'口译 · 海关',bag:'行李帮忙'},
+ st:{sent:'已发送',disp:'已显示',ack:'已确认收到',acc:'已接受',ass:'已派人',route:'在路上',site:'已到场',met:'旅客确认见到',done:'已完成',exp:'超时 · 无人确认',esc:'已升级',fb:'旅客反馈'},
+ basis:{sys:'系统观测',con:'控制台显示',party:'接收方确认',actor:'执行方陈述',pax:'旅客确认'},
+ who:{prov:'服务商 A（模拟）',prov2:'服务商 B（模拟）',pc:'Passenger Care',booth:'迎新台',none:'—'},
+ where:{f73:'F73 登机口',f68:'F68 登机口',e75:'E75 登机口',imm:'入境检查前',bag:'行李厅',hall:'到达大厅'},
+ selHint:'点一行。',pax:'旅客',code:'旅程码',langv:'中文 · 大字',fbline:'旅客反馈 · 14:49 那步"信息不对"',
+ evA17:'轮椅请求 · F73 登机口',evA18:'语言请求 · 入境前',evBag:'转盘 14→16 · 已通知旅客'}};
+let L='en'; const t=k=>T[L][k];
+// demo clock per phone step
+const STEP_CLOCK={0:'14:01',1:'14:01',2:'14:01',3:'14:02',4:'14:04',5:'14:07',6:'14:08',7:'14:13',8:'14:13',9:'14:13',10:'14:31',11:'14:32',12:'14:35',13:'14:49',14:'15:02',15:'15:03',16:'15:05',17:'15:06',18:'15:07',19:'15:08',20:'16:05'};
+const STEP_NAMES={fr:['Langue','Intro','Première fois ?','Quatre façons','Appeler un agent','L\'agent arrive','En route','Avant le contrôle','Carte','Un panneau','À l\'intérieur','Bagages','Manger','L\'écran a changé','Sortie','Quitter l\'aéroport','Dernière question','Plainte : étape','Plainte : envoyée','Fin et suppression','Départ (statique)'],en:['Language','Intro','First time?','Four ways','Call staff','Staff arrives','On the move','Before immigration','Communication card','Ask about a sign','Inside','Bags: a wait','Something to eat','Screen changed','Exit','How to leave','Last question','Complaint: which step','Complaint: sent','Finish & delete','Departure (static)'],zh:['选语言','开场','第一次来吗','四种走法','叫人','工作人员到了','推着走','海关前','沟通卡','拍牌子','海关里','行李','吃点东西','屏幕改了','出口','怎么离开机场','最后一句','投诉：哪一步','投诉：已交','结束与删除','出发（静态）']};
+let step=4, noack=false, sel='A17';
+const mins=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;};
+const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function now(){return mins(STEP_CLOCK[step]||'14:02');}
+// simulated requests: fixed timelines for others; A17/A18 follow the phone
+function requests(){const n=now();const K=noack;
+ const hua=[]; if(step>=4){hua.push({t:'14:02',s:'sent',b:'sys',who:'pc'});
+  if(K){ if(n>=mins('14:05'))hua.push({t:'14:05',s:'esc',b:'sys',who:'pc'}); if(n>=mins('14:06'))hua.push({t:'14:06',s:'acc',b:'party',who:'pc'}); if(n>=mins('14:06'))hua.push({t:'14:06',s:'route',b:'actor',who:'pc'}); if(n>=mins('14:10'))hua.push({t:'14:10',s:'site',b:'actor',who:'pc'}); if(n>=mins('14:10'))hua.push({t:'14:10',s:'met',b:'pax',who:'none'}); }
+  else { hua.push({t:'14:02',s:'disp',b:'con',who:'prov'}); if(n>=mins('14:03'))hua.push({t:'14:03',s:'acc',b:'party',who:'prov'}); if(n>=mins('14:03'))hua.push({t:'14:03',s:'route',b:'actor',who:'prov'}); if(n>=mins('14:07'))hua.push({t:'14:07',s:'site',b:'actor',who:'prov'}); if(n>=mins('14:07'))hua.push({t:'14:07',s:'met',b:'pax',who:'none'}); }
+  if(n>=mins('14:13'))hua.push({t:'14:13',s:'done',b:'actor',who:K?'pc':'prov'}); }
+ const a18=[]; if(step>=7){a18.push({t:'14:13',s:'sent',b:'sys',who:'pc'},{t:'14:13',s:'ack',b:'party',who:'pc'}); if(n>=mins('14:14'))a18.push({t:'14:14',s:'acc',b:'party',who:'pc'}); if(n>=mins('14:31'))a18.push({t:'14:31',s:'done',b:'actor',who:'pc'});}
+ const list=[
+  {id:'A11',sent:'13:58',where:'e75',need:'wc',lang:'zh',ev:[{t:'13:58',s:'sent',b:'sys',who:'booth'},{t:'13:59',s:'acc',b:'party',who:'prov'},{t:'14:04',s:'site',b:'actor',who:'prov'},{t:'14:05',s:'met',b:'pax',who:'none'},{t:'14:20',s:'done',b:'actor',who:'prov'}]},
+  {id:'A12',sent:'13:59',where:'e75',need:'wc',lang:'zh',ev:[{t:'13:59',s:'sent',b:'sys',who:'booth'},{t:'14:00',s:'acc',b:'party',who:'prov'},{t:'14:06',s:'site',b:'actor',who:'prov'},{t:'14:06',s:'met',b:'pax',who:'none'},{t:'14:22',s:'done',b:'actor',who:'prov'}]},
+  {id:'A13',sent:'14:00',where:'e75',need:'way',lang:'zh',ev:[{t:'14:00',s:'sent',b:'sys',who:'booth'},{t:'14:00',s:'acc',b:'party',who:'booth'},{t:'14:09',s:'done',b:'actor',who:'booth'}]},
+  {id:'A14',sent:'14:00',where:'f68',need:'wc',lang:'en',ev:[{t:'14:00',s:'sent',b:'sys',who:'pc'},{t:'14:00',s:'disp',b:'con',who:'prov2'},{t:'14:12',s:'acc',b:'party',who:'prov2'},{t:'14:18',s:'site',b:'actor',who:'prov2'},{t:'14:19',s:'met',b:'pax',who:'none'}]},
+  {id:'A15',sent:'14:01',where:'f68',need:'wc',lang:'ko',ev:[{t:'14:01',s:'sent',b:'sys',who:'pc'},{t:'14:01',s:'disp',b:'con',who:'prov2'}]},
+  {id:'A16',sent:'14:01',where:'hall',need:'bag',lang:'en',ev:[{t:'14:01',s:'sent',b:'sys',who:'pc'},{t:'14:02',s:'acc',b:'party',who:'pc'},{t:'14:10',s:'done',b:'actor',who:'pc'}]},
+  {id:'A17',sent:'14:02',where:'f73',need:'wc',lang:'zh',hua:true,ev:hua},
+  {id:'A18',sent:'14:13',where:'imm',need:'lang',lang:'zh',hua:true,ev:a18},
+  {id:'A19',sent:'14:20',where:'bag',need:'way',lang:'fr',ev:[{t:'14:20',s:'sent',b:'sys',who:'booth'},{t:'14:20',s:'acc',b:'party',who:'booth'},{t:'14:26',s:'done',b:'actor',who:'booth'}]}
+ ];
+ return list.filter(r=>mins(r.sent)<=n&&(!r.hua||r.ev.length)).map(r=>{r.ev=r.ev.filter(e=>mins(e.t)<=n);return r;});
+}
+function state(r){const ev=r.ev;const has=k=>ev.some(e=>e.s===k);const last=ev[ev.length-1];
+ if(has('done'))return{k:'done',l:t('st').done};
+ if(has('met'))return{k:'acc',l:t('st').met};
+ if(has('site'))return{k:'acc',l:t('st').site};
+ if(has('route'))return{k:'acc',l:t('st').route};
+ if(has('acc'))return{k:'acc',l:t('st').acc};
+ if(has('esc'))return{k:'bad',l:t('st').esc};
+ const age=now()-mins(r.sent); if(age>10)return{k:'bad',l:t('st').exp};
+ if(has('ack'))return{k:'wait',l:t('st').ack};
+ return{k:'wait',l:has('disp')?t('st').disp:t('st').sent};}
+function timer(r){const stop=r.ev.find(e=>e.s==='acc');const done=r.ev.find(e=>e.s==='done');const end=stop?mins(stop.t):(done?mins(done.t):now());const d=Math.max(0,end-mins(r.sent));return{d,over:!stop&&!done&&d>10};}
+function takenBy(r){const acc=r.ev.find(e=>e.s==='acc');const esc=r.ev.find(e=>e.s==='esc');if(acc)return t('who')[acc.who];if(esc)return t('who').pc+' ↑';return t('who').none;}
+function render(){document.documentElement.lang=L==='zh'?'zh-CN':L;
+ $('title').textContent=t('title');$('simtag').textContent=t('sim');$('follow').textContent=t('follow').replace('{s}',step+1);$('momlab').textContent=t('moment')+':';$('noacklab').textContent=t('noack');$('h2req').textContent=t('req');$('h2det').textContent=t('det');$('tnote').textContent=t('tnote');$('dnote').textContent=t('dnote');$('honest').textContent=t('honest');$('clock').textContent=STEP_CLOCK[step]||'14:02';
+ const ss=$('stepsel');ss.innerHTML=STEP_NAMES[L].map((n,i)=>`<option value="${i}"${i===step?' selected':''}>${i+1}. ${n}</option>`).join('');
+ const rs=requests();const wc=rs.filter(r=>r.need==='wc');const within=rs.filter(r=>{const a=r.ev.find(e=>e.s==='acc');return a&&(mins(a.t)-mins(r.sent))<=10;}).length;const over=rs.filter(r=>timer(r).over).length;const esc=rs.filter(r=>r.ev.some(e=>e.s==='esc')).length;
+ const k=[['',t('k')[0],''],[2,t('k')[1],''],[Math.max(0,rs.length-2),t('k')[2],'amber'],[within,t('k')[3],'green'],[over,t('k')[4],over?'red':''],[esc,t('k')[5],esc?'red':'']];
+ $('ind').innerHTML=k.map(([v,l,c])=>`<div class="k ${c}"><div class="v">${v===''?'✈':v}</div><div class="l">${l}</div></div>`).join('');
+ $('thead').innerHTML='<tr>'+t('th').map(h=>`<th>${h}</th>`).join('')+'</tr>';
+ $('rows').innerHTML=rs.map(r=>{const s=state(r);const tm=timer(r);return `<tr class="row${r.id===sel?' sel':''}${tm.over?' over':''}" data-id="${r.id}"><td><b>${r.id}</b>${r.hua?' ◆':''}</td><td>${r.sent}</td><td>${t('where')[r.where]}</td><td>${t('needs')[r.need]}</td><td>${r.lang}</td><td>${takenBy(r)}</td><td><span class="st ${s.k}">${s.l}</span></td><td class="timer${tm.over?' over':''}">${tm.d} min</td></tr>`;}).join('');
+ document.querySelectorAll('tr.row').forEach(tr=>tr.onclick=()=>{sel=tr.dataset.id;render();});
+ const r=rs.find(x=>x.id===sel); if(!r){$('det').innerHTML=`<p style="color:var(--muted)">${t('selHint')}</p>`;return;}
+ const fb=(r.id==='A17'&&step>=18);
+ $('det').innerHTML=`<div class="who">${r.id} · ${t('needs')[r.need]} · ${t('where')[r.where]}</div><div class="sub">${t('pax')}: ${r.hua?'Hua · 72 · '+t('langv')+' · '+t('code')+' 4821':'—'}</div>`+r.ev.map(e=>`<div class="ev${e.s==='esc'||e.s==='exp'?' bad':''}"><span class="tm">${e.t}</span><span>${t('st')[e.s]}${e.who!=='none'?' · '+t('who')[e.who]:''}</span><span class="b">${t('basis')[e.b]}</span></div>`).join('')+(r.id==='A17'&&step>=13?`<div class="ev"><span class="tm">14:49</span><span>${t('evBag')}</span><span class="b">${t('basis').sys}</span></div>`:'')+(fb?`<div class="ev bad"><span class="tm">15:07</span><span>${t('fbline')}</span><span class="b">${t('basis').pax}</span></div>`:'');
+}
+const $=id=>document.getElementById(id);
+$('lang').onchange=e=>{L=e.target.value;render();};
+$('stepsel').onchange=e=>{step=+e.target.value;render();};
+$('noack').onchange=e=>{noack=e.target.checked;render();};
+// follow the phone demo through localStorage (same file:// origin in Chrome); manual controls still work
+let lastS=null,lastK=null;
+function poll(){try{const s=localStorage.getItem('seeya-demo-step');const k=localStorage.getItem('seeya-demo-noack');if(lastS===null){lastS=s;lastK=k;return;}if(s!==lastS){lastS=s;if(s!==null){step=+s;$('stepsel').value=String(step);render();}}if(k!==lastK){lastK=k;if(k!==null){noack=(k==='1');$('noack').checked=noack;render();}}}catch(e){}}
+(function(){const h=location.hash;const m=h.match(/step=(\d+)/);if(m)step=+m[1];const l=h.match(/lang=(\w+)/);if(l&&T[l[1]])L=l[1];if(/noack=1/.test(h))noack=true;if(L==='zh'){$('lang').insertAdjacentHTML('beforeend','<option value="zh">中文</option>');}$('lang').value=L;$('noack').checked=noack;render();if(!m)setInterval(poll,600);})();
+</script>
+</body>
+</html>

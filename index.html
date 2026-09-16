@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>document.documentElement.classList.add("js")</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seeya · Hua 到达演示</title>
+<style>
+:root{--ink:#14213d;--muted:#5b6b82;--blue:#1b5fd1;--blue-soft:#e6efff;--green:#1e7d4f;--green-soft:#e7f5ec;--amber:#8a5a00;--amber-soft:#fff3d6;--red:#b3261e;--paper:#fff;--line:#d9e0ea;--route:#1b5fd1}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1c1f26;font-family:-apple-system,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;color:var(--ink)}
+#stage{height:100%;display:flex;align-items:center;justify-content:center;gap:28px;padding:16px}
+#phone{position:relative;width:390px;height:844px;border-radius:44px;background:#000;padding:12px;box-shadow:0 30px 80px rgba(0,0,0,.6);flex:none;transform-origin:center}
+#screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:#eef1f5}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+#map:active{cursor:grabbing}
+.sim{position:absolute;top:0;left:0;right:0;height:22px;background:rgba(20,33,61,.85);color:#fff;font-size:11px;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;z-index:20}
+.statusbar{position:absolute;top:22px;left:0;right:0;height:30px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:14px;font-weight:600;z-index:20}
+#topcard{position:absolute;top:58px;left:12px;right:12px;background:var(--paper);border-radius:16px;box-shadow:0 6px 24px rgba(20,33,61,.15);padding:12px 14px;z-index:15;transition:opacity .3s,transform .3s}
+#topcard.hidden{opacity:0;transform:translateY(-12px);pointer-events:none}
+.tc-row{display:flex;align-items:center;gap:10px;min-height:30px}
+.tc-row+.tc-row{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 3px #fff,0 0 0 4px var(--blue);flex:none}
+.pin{width:12px;height:12px;border-radius:50% 50% 50% 0;background:var(--red);transform:rotate(-45deg);flex:none}
+.tc-main{font-size:18px;font-weight:600;flex:1;line-height:1.25}
+.tc-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.tc-prog{font-size:12px;color:var(--muted);white-space:nowrap}
+.tc-meta{display:flex;gap:10px;font-size:13px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.tc-meta b{color:var(--ink);font-weight:600}
+.spk{border:0;background:var(--blue-soft);color:var(--blue);border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;flex:none}
+#banner{position:absolute;top:58px;left:12px;right:12px;background:#0f7b4f;color:#fff;border-radius:16px;padding:14px 16px;z-index:16;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.2);transition:opacity .3s,transform .3s}
+#banner.hidden{opacity:0;transform:translateY(-12px);pointer-events:none}
+#banner .arrow{font-size:34px;line-height:1}
+#banner .txt{font-size:20px;font-weight:600;line-height:1.25;flex:1}
+#banner .sub{font-size:13px;opacity:.9;font-weight:400;margin-top:3px}
+#banner.amber{background:#b8730a}
+#drawer{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(20,33,61,.18);z-index:18;max-height:78%;display:flex;flex-direction:column;transition:transform .35s}
+#drawer .handle{width:42px;height:5px;border-radius:3px;background:#cfd6e0;margin:8px auto 4px}
+#drawer .body{padding:6px 18px 18px;overflow:auto;font-size:19px;line-height:1.4}
+.say{display:flex;gap:10px;align-items:flex-start}
+.say .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1b5fd1,#6fb1ff);flex:none;margin-top:4px}
+.say p{margin:0 0 8px}
+.say .small{font-size:14px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:1.5px solid var(--blue);background:#fff;color:var(--blue);border-radius:999px;padding:10px 16px;font-size:17px;cursor:pointer;font-weight:600}
+.chip.primary{background:var(--blue);color:#fff}
+.chip.quiet{border-color:var(--line);color:var(--muted)}
+.plans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.plan{border:1.5px solid var(--line);border-radius:14px;padding:10px 8px;cursor:pointer;text-align:left;background:#fff}
+.plan .t{font-size:12px;color:var(--muted);line-height:1.2}
+.plan .v{font-size:20px;font-weight:700;margin:4px 0 2px;white-space:nowrap}
+.plan .m{font-size:12px;color:var(--muted)}
+.plan.hi{border-color:var(--blue);background:var(--blue-soft)}
+.req{border:1.5px solid var(--green);background:var(--green-soft);border-radius:16px;padding:12px 14px;margin-top:8px}
+.req .who{display:flex;align-items:center;gap:12px}
+.req .badge{width:44px;height:44px;border-radius:50%;background:#2f6fe4;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none}
+.req .name{font-size:18px;font-weight:700}
+.req .vest{font-size:14px;color:var(--muted)}
+.req .eta{margin-left:auto;text-align:right}
+.req .eta b{font-size:26px;display:block;line-height:1}
+.req .eta span{font-size:12px;color:var(--muted)}
+.big{font-size:22px;font-weight:700;margin:12px 0 6px;line-height:1.3}
+.status{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.status .s{font-size:12px;padding:4px 8px;border-radius:8px;background:#fff;border:1px solid var(--line);color:var(--muted)}
+.status .s.on{border-color:var(--green);color:var(--green);font-weight:600}
+.airport{font-size:12px;color:#7a879a;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.src{font-size:13px;color:var(--muted)}
+.list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.list.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.list.grid2 .item{padding:8px 10px;gap:8px}.list.grid2 .item .n{font-size:15px}.list.grid2 .item .d{font-size:12px}.list.grid2 .item .ic{width:30px;height:30px;font-size:17px}
+.item{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer}
+.item .ic{width:36px;height:36px;border-radius:10px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.item .n{font-size:17px;font-weight:600}
+.item .d{font-size:13px;color:var(--muted)}
+.item .tag{margin-left:auto;font-size:12px;background:var(--amber-soft);color:var(--amber);padding:3px 8px;border-radius:8px;font-weight:600;white-space:nowrap}
+.item.hi{border-color:var(--blue);background:var(--blue-soft)}
+#modal{position:absolute;inset:0;z-index:30;background:rgba(238,241,245,.96);display:flex;flex-direction:column;padding:60px 22px 24px;overflow:auto}
+#modal.hidden{display:none}
+#modal h1{font-size:24px;margin:0 0 6px}
+#modal .lead{font-size:16px;color:var(--muted);margin:0 0 16px}
+.langs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lang{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:16px 12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center}
+.lang.dim{color:#8a95a6;font-weight:500}
+.note{margin-top:14px;background:var(--amber-soft);color:var(--amber);border-radius:12px;padding:12px;font-size:15px;line-height:1.4}
+.card{background:#fff;border:3px solid var(--ink);border-radius:18px;padding:22px;margin-top:8px}
+.card .l1{font-size:34px;font-weight:800;line-height:1.2}
+.card .l2{font-size:22px;color:var(--muted);margin-top:10px;line-height:1.3}
+.card .l3{font-size:16px;color:var(--muted);margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.sign{background:#0b2a5b;color:#fff;border-radius:12px;padding:22px 18px;font-size:26px;font-weight:700;text-align:center;margin:8px 0 14px;letter-spacing:.02em}
+.sign small{display:block;font-size:16px;font-weight:500;opacity:.85;margin-top:4px}
+.close{margin-top:auto;border:0;background:var(--blue);color:#fff;font-size:18px;font-weight:600;border-radius:14px;padding:14px;cursor:pointer}
+#presenter{width:300px;color:#dfe5ee;font-size:14px;flex:none}
+#presenter h2{font-size:14px;margin:0 0 8px;color:#9aa6b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+#presenter .row{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+#presenter button,#presenter select{background:#2b3140;color:#fff;border:1px solid #3d4557;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+#presenter button.primary{background:#1b5fd1;border-color:#1b5fd1}
+#steps{list-style:none;padding:0;margin:0;max-height:560px;overflow:auto}
+#steps li{padding:5px 8px;border-radius:6px;color:#9aa6b8;cursor:pointer;font-size:13px}
+#steps li.cur{background:#2b3140;color:#fff}
+#presenter .hint{color:#7f8a9c;font-size:12px;margin-top:10px;line-height:1.4}
+/* map markers */
+.mk-label{font-size:7px;fill:#3b4a63;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:2.2px;stroke-linejoin:round}
+.mk-label.dim{fill:#7a879a;font-weight:500}
+.route{fill:none;stroke:var(--route);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.route.alt{stroke:#9db7e8;stroke-dasharray:1 4}
+.route-halo{fill:none;stroke:#fff;stroke-width:5.5;stroke-linecap:round;stroke-linejoin:round}
+.eta-tag{font-size:6.5px;font-weight:700;fill:#fff}
+.you{fill:var(--blue);stroke:#fff;stroke-width:1.6}
+.you-halo{fill:rgba(27,95,209,.18)}
+.staff{fill:#2f6fe4;stroke:#fff;stroke-width:1.4}
+.poi{fill:#fff;stroke:#c9d3e3;stroke-width:.8}
+.poi-ic{font-size:6px;text-anchor:middle;dominant-baseline:central}
+.pin-end{fill:var(--red);stroke:#fff;stroke-width:1.2}
+@media (max-height:900px){#phone{transform:scale(.9)}}
+@media (max-height:800px){#phone{transform:scale(.8)}}
+@media (max-width:760px){#stage{flex-direction:column;gap:12px}#presenter{width:100%}#phone{transform:scale(.72)}}
+
+.gear{border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--muted);padding:0 0 0 6px}
+.toggles{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.tg{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:18px;font-weight:600;cursor:pointer}
+.tg small{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:2px}
+.tg .sw{width:52px;height:30px;border-radius:15px;background:#c9d1dc;position:relative;flex:none;margin-left:12px}
+.tg .sw::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.tg.on .sw{background:var(--green)}.tg.on .sw::after{left:25px}
+.timeline{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.tl{display:flex;gap:10px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;background:#fff}
+.tl .tm{font-size:13px;color:var(--muted);width:44px;flex:none}
+.tl .tx{font-size:16px;font-weight:600;flex:1}
+.tl.hi{border-color:var(--red);background:#fff1f0}
+.ref{background:var(--blue-soft);border-radius:12px;padding:12px;font-size:15px;margin-top:10px;line-height:1.4}
+.ref b{font-size:18px}
+#screen.hc{--ink:#000;--muted:#1a1a1a;--blue:#0026b3;--blue-soft:#dfe6ff;--green:#004d23;--green-soft:#d9f2e1;--amber:#5a3a00;--amber-soft:#ffe9b3;--red:#a30000;--line:#000;--route:#0026b3;background:#fff}
+#screen.hc .plan,#screen.hc .item,#screen.hc .tl,#screen.hc .tg,#screen.hc .req,#screen.hc .card{border-width:2.5px}
+#screen.hc #map{filter:contrast(1.35) saturate(1.4)}
+#screen.hc .mk-label{fill:#000}
+#screen.hc .chip{border-width:2.5px}
+#screen.big{font-size:20px}
+#screen.big #drawer .body{font-size:23px}
+#screen.big .tc-main{font-size:22px}#screen.big .tc-sub,#screen.big .tc-meta{font-size:15px}
+#screen.big .chip{font-size:20px;padding:12px 18px}#screen.big .plan .v{font-size:24px}#screen.big .big{font-size:26px}#screen.big #banner .txt{font-size:24px}
+#screen.rm *{transition:none!important}
+body.shot #presenter{display:none}body.shot #stage{padding:0;background:#1c1f26;align-items:flex-start;justify-content:flex-start;gap:16px}body.shot #surfaces{margin-top:12px}body.shot #phone{margin:0}body.shot #phone{transform:none}
+
+.inbar{display:flex;gap:8px;align-items:center;padding:8px 14px 14px;border-top:1px solid var(--line)}
+.inbar button{border:0;background:var(--blue-soft);color:var(--blue);width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer;flex:none}
+.inbar .fake{flex:1;height:40px;border:1.5px solid var(--line);border-radius:20px;padding:0 14px;display:flex;align-items:center;color:#8a95a6;font-size:15px;cursor:text}
+#drawer.nobar .inbar{display:none}
+#offline{position:absolute;top:52px;left:0;right:0;background:#3b4252;color:#fff;font-size:13px;padding:6px 14px;z-index:21;text-align:center}
+#toast.hidden,#offline.hidden{display:none}
+#toast{position:absolute;left:24px;right:24px;bottom:120px;background:rgba(20,33,61,.92);color:#fff;border-radius:12px;padding:12px 14px;font-size:15px;z-index:40;text-align:center}
+.plans.four{grid-template-columns:1fr 1fr}
+.tc-prog{cursor:pointer;text-decoration:underline dotted}
+.src{cursor:pointer;text-decoration:underline dotted}
+.airport{cursor:pointer}
+.pp{display:flex;align-items:center;gap:12px;background:var(--blue-soft);border-radius:14px;padding:12px;margin-bottom:12px}
+.pp .av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f3b184,#e07a5f);flex:none}
+.pp b{font-size:18px}.pp small{display:block;color:var(--muted);font-size:13px}
+.ov{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.ov .st{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
+.ov .dot2{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:#fff;flex:none;margin-top:5px}
+.ov .st.done .dot2{background:var(--green);border-color:var(--green)}.ov .st.cur .dot2{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-soft)}
+.ov .st .l{font-size:17px;font-weight:600}.ov .st .m{font-size:13px;color:var(--muted)}
+.ev{font-size:14px;border-bottom:1px solid var(--line);padding:8px 0;display:flex;gap:10px}.ev .tm{color:var(--muted);width:44px;flex:none}.ev .id{font-weight:600;width:40px;flex:none}
+.ev.bad{color:var(--red)}
+.note2{font-size:13px;color:var(--muted);margin-top:10px}
+body.present #presenter{display:none}body.present #stage{padding:0}body.present #phone{transform:scale(1.02)}
+#presenter .faults label{color:#c9d1dc;font-size:13px;margin-right:8px}
+.pill{display:inline-block;background:var(--amber-soft);color:var(--amber);font-size:13px;padding:4px 10px;border-radius:8px;margin-top:8px;font-weight:600}
+.pill.red{background:#fdecea;color:var(--red)}
+
+#surfaces{width:760px;flex:none;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start}
+#surfaces.hidden{display:none}
+body.surf #presenter{display:none}
+.sp{background:#f4f6fa;border-radius:16px;padding:14px;color:var(--ink);min-height:230px}
+.sp h4{margin:0 0 8px;font-size:13px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.fp{background:#2b2f36;border-radius:18px;padding:14px 12px 10px;color:#dfe5ee;width:200px;margin:0 auto}
+.fp .scr{background:#c8d8b0;color:#1a2a10;border-radius:6px;padding:10px;font-family:Menlo,monospace;font-size:11px;line-height:1.5;min-height:120px;white-space:pre-wrap}
+.fp .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.fp .keys span{background:#3b4048;border-radius:5px;text-align:center;font-size:11px;padding:4px 0;color:#eee}
+.fp .keys span.hi{background:#1b5fd1}
+.sms{display:flex;flex-direction:column;gap:6px}
+.sms .b{background:#fff;border-radius:14px;padding:8px 12px;font-size:13px;line-height:1.45;max-width:92%;border:1px solid var(--line)}
+.sms .b.me{align-self:flex-end;background:#dff0ff}
+.sms .tm{font-size:11px;color:var(--muted);text-align:center}
+.sc{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px}
+.sc .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sc .h b{font-size:17px}.sc .code{font-family:Menlo,monospace;background:var(--blue-soft);color:var(--blue);padding:2px 8px;border-radius:6px;font-weight:700}
+.sc .r{display:flex;gap:8px;font-size:13px;padding:5px 0;border-top:1px solid var(--line)}.sc .r .k{color:var(--muted);width:72px;flex:none}
+.sc .big2{font-size:16px;font-weight:700;margin:6px 0}
+.dep{display:flex;gap:10px;margin-top:8px}
+.dep .d{flex:1;background:var(--amber-soft);border-radius:12px;padding:8px 10px;text-align:center}
+.dep .d b{display:block;font-size:22px;line-height:1.1}.dep .d span{font-size:12px;color:var(--amber)}
+.dep .d.blue{background:var(--blue-soft)}.dep .d.blue span{color:var(--blue)}
+.tb{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.tb .o{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:14px;padding:10px 12px}
+.tb .o .n{font-size:16px;font-weight:600;flex:1}.tb .o .left{font-size:13px;color:var(--green);font-weight:600;white-space:nowrap}.tb .o .left.warn{color:var(--amber)}
+
+.nojs{margin:16px;padding:14px 16px;background:#fff3d6;color:#5a3a00;border:1px solid #efd9a0;border-radius:12px;font-size:15px;line-height:1.5}html.js .nojs{display:none}
+</style>
+</head>
+<body>
+<div class="nojs" role="note"><b>This is an interactive demo.</b> If you can read this, the page is being previewed without JavaScript (for example inside an email app or a phone's file preview), so nothing else will appear. Please download the file and open it in Chrome, Safari or Edge on a computer. A PDF walkthrough is included in the same folder for phones.</div>
+<div id="stage">
+  <div id="phone"><div id="screen">
+    <svg id="map" viewBox="171 36 585 540" preserveAspectRatio="xMidYMid slice" aria-label="Terminal 1 map"></svg>
+    <div class="sim" id="simlabel"></div>
+    <div class="statusbar"><span id="clock">14:01</span><span>●●● ᯤ ▮</span></div>
+    <div id="topcard" class="hidden"></div>
+    <div id="banner" class="hidden"></div>
+    <div id="drawer"><div class="handle"></div><div class="body" id="drawerbody"></div><div class="inbar" id="inbar"><button onclick="inputNotYet()" aria-label="camera">📷</button><div class="fake" onclick="inputNotYet()" id="inph"></div><button onclick="inputNotYet()" aria-label="talk">🎤</button></div></div>
+    <div id="offline" class="hidden"></div><div id="toast" class="hidden"></div>
+    <div id="modal" class="hidden"></div>
+  </div></div>
+  <div id="surfaces" class="hidden"></div>
+  <div id="presenter">
+    <h2>Presenter</h2>
+    <div class="row"><button id="prev">◀</button><button id="next" class="primary">下一拍 ▶</button><button id="reset">重置</button></div>
+    <div class="row"><button id="present">🖥 演示模式 (P)</button><button id="auto">▶ 自动播放 (A)</button></div>
+    <div class="row"><button id="surf">🗂 同一拍在别的屏幕上 (M)</button><button id="deskbtn" onclick="window.open('desk.html#lang='+(lang==='zh'?'en':lang),'seeya-desk')">🖥 机场协调台（新窗口）</button></div>
+    <div class="row faults"><label><input type="checkbox" id="f-noack"> 无人接单</label><label><input type="checkbox" id="f-offline"> 断网</label></div>
+    <div class="row"><select id="langsel"><option value="zh">中文</option><option value="en">English</option><option value="fr">Français</option></select><button id="tts">🔈 朗读：开</button></div>
+    <h2 id="stepsh" style="margin-top:12px">拍 · 点一行跳过去（演示模式里藏起来）</h2>
+    <ol id="steps"></ol>
+    <div class="hint" id="hint">M 同一拍在别的屏幕上（老年机 / 工作人员 / 接机人 / 机场）。P 演示模式，A 自动播放，Esc 退出。← → 键翻拍。地图可以拖、滚轮缩放。所有人物、时间、请求状态都是模拟的，屏幕顶上一直写着。</div>
+  </div>
+</div>
+<script>
+// Terminal 1 arrivals-level outline, traced from Toronto Pearson's public T1 arrivals map PDF (2019). Shapes only; not a licensed dataset.
+window.T1_BASE_INNER = "\n<rect x=\"171\" y=\"36\" width=\"585\" height=\"540\" fill=\"#eef1f5\"/>\n<g id=\"roads\" fill=\"none\" stroke=\"#d3e7ee\" stroke-linecap=\"round\">\n<path d=\"M597.05 -815.16 C597.05 -815.16 531.13 -706.46 502.21 -595.44 C473.29 -484.44 443.22 -336.41 437.44 -280.90 C431.65 -225.39 427.03 -153.25 454.78 -117.05 C482.55 -80.84 522.91 -42.57 547.34 -9.14 C564.52 14.38 616.88 90.21 548.75 146.61 C480.62 202.98 430.78 155.66 404.17 127.48 C377.57 99.28 283.26 4.30 274.20 -6.10 C265.14 -16.50 230.56 -75.91 252.38 -119.20 C274.20 -162.49 299.51 -182.29 355.32 -214.50 C411.14 -246.72 420.20 -279.95 426.91 -302.77 C433.63 -325.59 441.00 -403.45 447.05 -455.80 C453.10 -508.15 463.17 -613.86 466.51 -633.66 C469.87 -653.46 482.30 -691.05 500.42 -713.20 C518.54 -735.35 556.80 -797.43 558.49 -805.83\" stroke-width=\"5.2\"/>\n<path d=\"M150.39 -92.08 C161.13 -92.90 179.55 -89.66 190.96 -82.61 C202.37 -75.56 267.48 -8.78 283.60 8.00 C299.71 24.77 321.86 44.91 334.61 48.27 C347.37 51.62 359.45 66.05 369.18 75.11 C378.91 84.18 384.29 91.90 398.38 81.83\" stroke-width=\"5.2\"/>\n<path d=\"M370.12 92.28 C377.84 100.19 376.81 120.83 384.79 130.03 C392.75 139.22 402.12 148.03 402.12 148.03\" stroke-width=\"5.2\"/>\n<path d=\"M382.72 85.86 C382.72 85.86 401.64 106.42 408.39 113.17 C415.13 119.92 426.79 132.17 434.15 138.60 C441.49 145.04 490.24 180.90 538.37 140.14 C586.49 99.37 566.87 48.80 554.61 25.51 C542.35 2.21 526.97 -34.76 515.46 -47.50\" stroke-width=\"5.2\"/>\n<path d=\"M522.36 26.51 C542.50 14.04 570.67 29.57 576.73 44.80\" stroke-width=\"5.2\"/>\n<path d=\"M566.90 151.71 C576.07 141.36 582.67 126.69 578.15 106.59\" stroke-width=\"5.2\"/>\n<path d=\"M-406.85 212.45 C-406.85 212.45 -169.75 435.95 -157.03 446.77 C-144.31 457.61 -12.94 508.97 21.08 526.99 C55.09 545.01 417.78 693.89 482.55 715.67 C547.32 737.46 575.07 750.26 738.15 727.10 C901.22 703.92 1021.50 686.73 1021.50 686.73\" stroke-width=\"8.7\"/>\n<path d=\"M-298.13 64.52 C-298.13 64.52 -189.95 183.53 -149.20 217.07 C-108.46 250.60 -98.05 266.79 -35.59 286.45 C26.86 306.11 99.72 347.74 118.23 369.71 C136.73 391.68 166.80 399.77 250.07 427.53 C333.35 455.29 427.03 484.20 470.98 500.39 C514.93 516.58 541.53 547.36 569.28 566.08 C597.05 584.80 647.93 595.22 678.01 600.99 C708.08 606.78 776.32 633.38 809.85 585.96 C843.39 538.55 860.73 513.98 932.44 489.26 C1004.15 464.54 1021.49 429.85 1021.49 429.85\" stroke-width=\"8.7\"/>\n<path d=\"M3.29 518.41 C3.29 518.41 24.00 453.60 101.77 354.99 C179.52 256.39 355.33 41.29 355.33 41.29\" stroke-width=\"5.2\"/>\n<path d=\"M774.00 242.51 L533.14 537.76 C496.80 579.41 439.91 667.37 439.45 699.72\" stroke-width=\"5.2\"/>\n<path d=\"M597.05 41.29 C597.05 41.29 531.13 150.00 502.21 261.02 C473.29 372.02 443.22 520.05 437.44 575.56 C431.65 631.07 427.03 703.20 454.78 739.41 C482.55 775.61 522.91 813.89 547.34 847.31 C564.52 870.83 616.88 946.67 548.75 1003.06 C480.62 1059.44 430.78 1012.12 404.17 983.93 C377.57 955.73 283.26 860.76 274.20 850.36 C265.14 839.96 230.56 780.55 252.38 737.26 C274.20 693.97 299.51 674.17 355.32 641.96 C411.14 609.73 420.20 576.51 426.91 553.69 C433.63 530.87 441.00 453.01 447.05 400.66 C453.10 348.31 463.17 242.59 466.51 222.80 C469.87 203.00 482.30 165.41 500.42 143.26 C518.54 121.10 556.80 59.02 558.49 50.63\" stroke-width=\"5.2\"/>\n<path d=\"M675.19 363.63 C675.19 363.63 439.76 129.88 427.41 119.12 C415.08 108.36 403.42 99.12 384.20 128.41 C364.96 157.71 326.06 210.13 306.96 232.49 C287.86 254.84 267.97 268.89 254.70 288.00 C245.30 301.53 204.71 426.01 202.66 433.59 C200.61 441.17 206.25 470.04 212.18 481.02 C218.11 492.00 223.15 501.98 245.39 508.08 C267.65 514.19 292.79 532.20 314.73 518.41 C336.67 504.61 379.38 449.85 392.14 431.35 C404.91 412.85 428.85 379.32 432.85 342.62 C436.84 305.92 442.08 221.34 447.04 203.38 C452.00 185.42 475.94 117.20 520.24 70.12\" stroke-width=\"5.2\"/>\n<path d=\"M245.39 508.08 C245.39 508.08 262.53 488.64 276.86 493.83 C291.19 499.02 295.16 523.45 295.16 523.45\" stroke-width=\"5.2\"/>\n<path d=\"M165.54 589.10 L210.40 477.17\" stroke-width=\"5.2\"/>\n<path d=\"M258.65 459.66 L271.17 471.72\" stroke-width=\"1.7\"/>\n</g><g id=\"pier\" fill=\"#cdd4de\">\n<path d=\"M256.01 90.69 L229.28 63.67 L227.05 65.72 L235.13 73.78 L232.99 75.92 L235.96 78.80 L237.91 77.18 L244.32 83.54 L242.09 85.86 L243.67 87.25 L246.27 85.12 L253.78 92.91 L253.60 94.39 L247.85 99.68 L318.30 171.25 L320.90 187.13 L319.88 222.02 L257.22 284.12 L250.72 278.27 L208.21 320.87 C208.21 320.87 216.10 336.00 235.69 348.25 L278.39 306.58 L274.58 302.50 L336.78 240.86 L342.53 241.05 L343.27 240.12 C343.27 240.12 366.85 240.30 375.67 241.60 C384.49 242.91 401.02 246.71 415.22 253.02 C429.42 259.33 443.62 270.56 450.96 277.06 C458.29 283.56 470.73 297.02 470.73 297.02 L469.34 483.95 C469.34 483.95 456.62 480.71 446.69 470.12 L414.57 500.38 C414.57 500.38 437.88 530.36 482.61 530.54 C527.35 530.73 549.46 501.49 549.46 501.49 L517.79 470.96 C517.79 470.96 504.15 482.84 494.96 484.04 L496.25 333.04 L496.25 297.10 C496.25 297.10 515.01 277.44 529.95 267.60 C544.90 257.75 563.56 250.52 563.56 250.52 L566.81 258.59 L581.57 256.08 L581.57 254.69 L586.85 253.85 L626.50 293.49 L624.82 295.07 L701.04 373.03 L703.08 371.36 L732.32 401.24 L747.36 387.32 L745.79 385.47 L732.69 397.81 L704.85 369.42 L714.41 360.14 L638.93 283.00 L629.75 292.56 L618.52 280.86 L624.18 275.02 L626.78 277.62 L634.85 270.10 L627.15 262.03 L619.44 269.45 L622.96 273.45 L616.84 279.10 L587.98 249.96 L571.82 252.75 L570.05 248.29 L570.89 246.90 L568.11 236.22 L570.89 235.11 L568.66 229.08 C568.66 229.08 595.40 216.08 610.99 198.44 L607.66 195.29 L612.20 190.46 L609.60 187.58 L607.38 189.72 L563.01 148.04 C563.01 148.04 553.26 159.00 538.59 166.80 L518.53 127.63 L507.49 133.00 L527.35 172.17 C527.35 172.17 512.41 181.36 484.56 180.62 C456.72 179.88 443.07 171.62 443.07 171.62 L463.58 132.17 L453.10 126.79 L432.39 166.23 C432.39 166.23 417.82 157.97 405.56 144.62 L362.95 186.93 L360.41 184.43 L358.68 186.47 L344.58 171.90 L343.74 172.83 L293.43 122.15 L290.92 125.12 L256.01 90.69\"/>\n</g><g id=\"stubs\" fill=\"none\" stroke=\"#b5bfcc\" stroke-width=\"1.6\" stroke-linecap=\"round\">\n<path d=\"M492.57 316.25 L511.82 316.25\"/>\n<path d=\"M511.82 307.93 L511.82 321.11\"/>\n<path d=\"M492.57 448.92 L523.17 448.92\"/>\n<path d=\"M510.92 447.92 L510.92 453.77\"/>\n<path d=\"M434.06 455.19 L473.81 455.19\"/>\n<path d=\"M456.98 454.19 L456.98 460.05\"/>\n<path d=\"M450.33 367.25 L472.87 367.25\"/>\n<path d=\"M457.92 366.25 L457.92 372.11\"/>\n<path d=\"M449.44 351.57 L471.99 351.57\"/>\n<path d=\"M457.04 347.93 L457.04 356.42\"/>\n<path d=\"M510.92 355.35 L510.92 372.75\"/>\n<path d=\"M530.33 263.67 L542.00 279.83 L542.00 287.67\"/>\n<path d=\"M492.25 340.00 L511.25 340.00 L511.25 335.25\"/>\n<path d=\"M559.65 249.82 L567.76 269.04 L572.14 267.19\"/>\n<path d=\"M477.70 316.31 L458.70 316.31 L458.70 321.06\"/>\n<path d=\"M493.75 360.75 L515.25 360.75 L515.25 355.35\"/>\n<path d=\"M510.92 401.00 L510.92 416.80\"/>\n<path d=\"M493.75 410.50 L515.25 410.50 L515.25 416.80\"/>\n<path d=\"M560.25 470.50 L552.75 470.50 L546.50 477.25 L560.75 489.75 L581.25 489.75\"/>\n<path d=\"M586.00 503.75 L568.50 503.75 L560.50 510.25 L554.00 527.00 L564.50 531.15\"/>\n<path d=\"M537.88 495.38 L555.12 477.12\"/>\n<path d=\"M536.76 508.13 L561.98 518.25\"/>\n<path d=\"M405.67 468.70 L413.17 468.70 L419.42 475.45 L405.17 487.95 L384.67 487.95\"/>\n<path d=\"M428.05 493.57 L410.80 475.32\"/>\n<path d=\"M457.38 412.25 L457.38 408.12 L472.38 408.12\"/>\n<path d=\"M505.00 521.33 L511.00 545.67\"/>\n<path d=\"M460.33 520.33 L453.33 546.00\"/>\n<path d=\"M429.67 506.67 L403.84 516.35\"/>\n<path d=\"M389.93 503.45 L399.50 503.45 L405.95 509.12 L409.29 518.79 L397.94 522.91\"/>\n<path d=\"M435.17 544.50 L438.17 537.00 L471.50 546.33 L471.50 557.17\"/>\n<path d=\"M504.33 553.83 L502.67 543.67 L532.83 536.17 L536.50 542.50\"/>\n<path d=\"M439.33 262.67 L425.00 283.00\"/>\n<path d=\"M406.33 246.00 L398.67 269.33\"/>\n<path d=\"M374.33 237.33 L372.67 257.00\"/>\n<path d=\"M368.00 256.33 L377.00 256.33\"/>\n<path d=\"M429.33 277.67 L433.57 280.67\"/>\n<path d=\"M400.84 263.70 L405.84 265.51\"/>\n<path d=\"M328.25 244.75 L341.25 258.75\"/>\n<path d=\"M337.00 262.00 L344.25 255.25\"/>\n<path d=\"M298.25 273.75 L318.00 293.50\"/>\n<path d=\"M290.19 286.03 L301.91 297.72 L299.27 300.37 L303.23 304.32\"/>\n<path d=\"M236.65 365.76 L241.99 363.64 L235.01 345.97\"/>\n<path d=\"M197.65 328.00 L201.08 332.62 L216.33 321.29\"/>\n<path d=\"M258.27 323.07 L272.62 337.71\"/>\n<path d=\"M268.82 339.78 L275.01 333.72\"/>\n<path d=\"M270.52 312.53 L286.60 328.91 L293.74 321.89\"/>\n<path d=\"M239.24 304.51 L223.10 288.18 L218.67 292.57\"/>\n<path d=\"M229.00 341.33 L229.00 359.83 L223.33 371.67\"/>\n<path d=\"M218.72 330.26 L204.78 341.24\"/>\n<path d=\"M214.17 319.00 L210.50 314.00 L195.33 308.33\"/>\n<path d=\"M255.06 250.72 L273.13 269.41\"/>\n<path d=\"M261.08 262.19 L266.12 257.33\"/>\n<path d=\"M235.70 264.02 L256.77 285.82\"/>\n<path d=\"M238.18 272.51 L243.21 267.65\"/>\n<path d=\"M279.83 230.00 L291.17 231.83 L303.33 244.50\"/>\n<path d=\"M324.66 187.40 L304.65 187.40 L304.65 196.61\"/>\n</g><g id=\"hall\" fill=\"#b3c5e8\">\n<path d=\"M701.04 373.03 L703.08 371.36 L732.33 401.24 L747.36 387.32 L745.79 385.47 L732.69 397.81 L704.85 369.42 L714.41 360.14 L638.93 283.00 L629.75 292.56 L618.52 280.86 L624.18 275.02 L626.78 277.62 L634.85 270.10 L627.15 262.03 L619.44 269.45 L622.96 273.45 L616.84 279.10 L587.98 249.96 L571.83 252.75 L570.06 248.29 L570.20 248.05 L563.74 250.97 L566.81 258.59 L581.57 256.08 L581.57 254.69 L586.85 253.85 L626.51 293.49 L624.82 295.07 L701.04 373.03\"/>\n<path d=\"M518.72 276.64 L500.06 296.14 L488.68 285.26 L507.34 265.75 L518.72 276.64\"/>\n<path d=\"M518.72 276.64 L512.34 283.30 L497.89 269.47 L504.27 262.81 L518.72 276.64\"/>\n<path d=\"M358.67 191.26 L405.67 144.26 C405.67 144.26 426.67 163.93 447.00 170.93 C467.33 177.93 493.67 181.26 519.67 172.93 C545.67 164.60 562.67 146.93 562.67 146.93 L582.00 165.26 C582.00 165.26 564.66 184.93 538.00 195.93 L550.33 233.60 C550.33 233.60 508.67 253.60 456.67 243.93 C402.23 233.81 381.33 214.93 358.67 191.26\"/>\n<path d=\"M466.24 127.79 L454.99 121.83 L431.94 165.30 L443.19 171.27 L466.24 127.79\"/>\n<path d=\"M471.17 123.59 L454.22 115.47 L449.64 125.02 L466.60 133.14 L471.17 123.59\"/>\n<path d=\"M518.66 114.56 L504.08 126.42 L510.76 134.64 L525.34 122.78 L518.66 114.56\"/>\n<path d=\"M514.95 120.83 L503.65 126.70 L527.41 172.35 L538.70 166.47 L514.95 120.83\"/>\n<path d=\"M290.92 125.12 L256.01 90.69 L229.28 63.67 L227.05 65.72 L235.13 73.78 L232.99 75.92 L235.96 78.80 L237.91 77.18 L244.32 83.54 L242.09 85.86 L243.67 87.25 L246.27 85.12 L253.78 92.91 L253.60 94.39 L247.85 99.68 L300.74 153.41 L312.69 141.55 L293.43 122.15 L290.92 125.12\"/>\n<path d=\"M384.20 143.25 L404.67 119.12 L447.04 152.51 L426.84 178.88 L384.20 143.25\"/>\n<path d=\"M623.71 442.81 L588.90 487.61 L574.61 476.50 L609.42 431.72 L623.71 442.81\"/>\n<path d=\"M349.88 189.42 L314.97 234.67 L300.64 223.63 L335.55 178.37 L349.88 189.42\"/>\n<path d=\"M502.26 304.11 L490.15 307.14 L478.06 304.11 L478.06 290.70 L502.26 290.70 L502.26 304.11\"/>\n</g>";
+
+</script>
+<script>
+// ---------- i18n ----------
+const I = {
+zh:{sim:'研究演示 · 全部为模拟数据，不是机场实时信息', you:'你在这里', gate:'F73 登机口', imm:'入境检查', bag:'行李转盘', exit:'B 出口 · 接机', seat:'座位区', staffName:'工作人员 1', vest:'蓝色马甲 · 皮尔逊地面服务（模拟）',
+ langTitle:'你用什么语言？', langLead:'选一个，整个界面都会换过去。', other:'其他语言', unsupported:'这种语言的界面还没翻译好。可以先用英文，或者直接叫工作人员，不会让你卡在这里。',
+ intro1:'你好，我是 Seeya。我会给你地图，告诉你每一步去哪里、要准备什么。', intro2:'需要真人的时候，我帮你叫，然后一直告诉你他到哪了。', intro3:'两件我不做的事：我不替你回答海关的问题；我说"已发送"不等于"有人接了"，接了我会另外告诉你。', cont:'好，继续',
+ first:'第一次来多伦多吗？', firstY:'第一次', firstN:'来过',
+ firstAck:'好，第一次来我就说得细一点。你现在在 F73 登机口，下一站是入境检查。',
+ nextStep:'下一站', of:'第 {a} 步 / 共 {b} 步', stepfree:'全程有电梯', min:'分钟', walk:'自己走', call:'叫工作人员', rest:'先坐一下', walkM:'11 分钟 · 有电梯', callM:'轮椅 · 到了才要也可以', restM:'座位 30 米',
+ plan:'怎么过去？都行，你选。',
+ reqSent:'已发送', reqRecv:'已接收', reqAcc:'已接受', reqWay:'在路上', reqHere:'已到',
+ stay:'你坐在原地，不用动。', eta:'预计', m:'米', cancel:'不要了', switchWalk:'改成自己走',
+ airport:'机场协调台看到的同一件事：请求 A17 · {s} · 响应窗口 10 分钟内', airport2:'机场服务台看到的：语言请求 A18 · {s}',
+ arrived:'工作人员 1 到了，穿蓝色马甲。你可以把手机给他看这一页。', go:'我们出发了',
+ nav1:'往前走，跟着蓝色 Arrivals 标', nav1s:'工作人员推着你 · 有电梯 · 约 6 分钟', nav2:'前面就是入境检查', nav2s:'排队区在左边',
+ cus1:'前面是入境检查，请把护照拿在手里。', cus2:'这里我不能替你回答问题。你不会英文，我已经把"我说中文"先发给了服务台。', showCard:'显示沟通卡', photo:'拍牌子问一下', cusIn:'我进去了',
+ cardL1:'我说中文', cardL2:'请慢一点，或者叫会中文的工作人员', cardL3:'I speak Mandarin. Please speak slowly, or call a Mandarin-speaking staff member.', closeCard:'关闭',
+ signQ:'这个牌子什么意思？', signA:'"所有护照"。意思是：所有旅客都在这里排队，不分国籍，你走这一排就对了。', signSrc:'来源：牌子上的字，我只翻译，不加东西。',
+ inside:'跟着工作人员。出来了告诉我一声。', out:'我出来了',
+ bagCard:'14 号转盘', bagSub:'预计 25 分钟后出行李', bagSrc:'来源：机场屏幕 · 14:31',
+ wait:'要等一会儿。想坐一下，吃点东西，还是给家里人买个礼物？', wSit:'坐一下', wEat:'吃点东西', wGift:'买礼物',
+ eat:'这三家都在你回转盘的路上，机场推荐的，不是别人的评价。', f1:'咖啡 · 三明治', f2:'面馆', f3:'奶茶 · 点心', f1d:'步行 2 分钟', f2d:'步行 3 分钟', f3d:'步行 1 分钟', coupon:'今日 8 折', remind:'行李出来前 8 分钟我叫你回去。', pick:'去这家',
+ conflict:'屏幕现在写 16 号', conflictS:'我之前拿到的是 14 号，两个不一致，以屏幕为准', conflictD:'我改了路线，往 16 号转盘走，多 1 分钟。你的东西没错，是信息变了。', ok:'好',
+ exitCard:'B 出口', exitSub:'接你的人在这里等', exitDone:'已到', arrive:'到了。接你的人就在 B 出口，你出去就能看到。', done:'好',
+ fb:'今天有没有哪一步没帮到你？', fbOk:'都好', fbNo:'有一步不对', fbSay:'想说几句', fbThanks:'谢谢。这条已经交给机场服务台（模拟），下次会做得更好。', fbSorry:'对不起。你告诉我是哪一步，我记下来交给机场服务台（模拟），不用你再说第二遍。',
+ poiCoffee:'咖啡', poiNoodle:'面馆', poiTea:'奶茶', poiGift:'礼品', poiInfo:'服务台', poiWC:'洗手间',
+ steps:['选语言','开场','第一次来吗','四种走法','叫人：Uber 卡','工作人员到了','推着走','海关前','沟通卡','拍牌子','海关里','行李：等一会儿','吃点东西','屏幕改了','出口','最后一句']},
+en:{sim:'Research demo · all data simulated, not live airport information', you:'You are here', gate:'Gate F73', imm:'Immigration', bag:'Baggage carousel', exit:'Exit B · meeting point', seat:'Seating', staffName:'Staff 1', vest:'Blue vest · Pearson ground services (simulated)',
+ langTitle:'Which language do you use?', langLead:'Pick one. The whole screen switches.', other:'Other language', unsupported:'This language is not ready yet. You can use English, or ask for a staff member. You will not be stuck here.',
+ intro1:"Hello, I'm Seeya. I'll give you the map and tell you, step by step, where to go and what to have ready.", intro2:"When you need a person, I'll call one and keep telling you where they are.", intro3:"Two things I don't do: I don't answer border questions for you. And 'sent' is not 'accepted'; I'll tell you separately when someone accepts.", cont:'OK, continue',
+ first:'Is this your first time in Toronto?', firstY:'First time', firstN:'Been before',
+ firstAck:"OK, first time, so I'll explain more. You're at Gate F73. Next stop is Immigration.",
+ nextStep:'Next', of:'Step {a} of {b}', stepfree:'Step-free', min:'min', walk:'Walk', call:'Call staff', rest:'Sit first', walkM:'11 min · elevators', callM:'Wheelchair · OK to ask now', restM:'Seats 30 m',
+ plan:'How do you want to get there? Any of these.',
+ reqSent:'Sent', reqRecv:'Received', reqAcc:'Accepted', reqWay:'On the way', reqHere:'Here',
+ stay:"Stay where you are. You don't need to move.", eta:'ETA', m:'m', cancel:'Cancel', switchWalk:'Walk instead',
+ airport:'What the airport coordination desk sees: request A17 · {s} · within 10-min response window', airport2:'What the help desk sees: language request A18 · {s}',
+ arrived:'Staff 1 is here, in a blue vest. You can show them this screen.', go:"We're off",
+ nav1:'Go ahead, follow the blue Arrivals signs', nav1s:'Staff is pushing you · elevators · about 6 min', nav2:'Immigration is just ahead', nav2s:'Queue area is on the left',
+ cus1:'Immigration is ahead. Please have your passport in hand.', cus2:"I can't answer questions for you here. You don't speak English, so I've already sent 'I speak Mandarin' to the help desk.", showCard:'Show communication card', photo:'Ask about a sign', cusIn:"I'm going in",
+ cardL1:'我说中文', cardL2:'请慢一点，或者叫会中文的工作人员', cardL3:'I speak Mandarin. Please speak slowly, or call a Mandarin-speaking staff member.', closeCard:'Close',
+ signQ:'What does this sign mean?', signA:'"All Passports". It means everyone queues here, any nationality. This is your line.', signSrc:'Source: the words on the sign. I only translate; I add nothing.',
+ inside:'Follow the staff member. Tell me when you come out.', out:"I'm out",
+ bagCard:'Carousel 14', bagSub:'Bags expected in about 25 min', bagSrc:'Source: airport screen · 14:31',
+ wait:"There's a wait. Sit down, get something to eat, or buy a gift for family?", wSit:'Sit', wEat:'Eat', wGift:'Gift',
+ eat:"All three are on your way back to the carousel. Airport picks, not reviews.", f1:'Coffee · sandwiches', f2:'Noodle bar', f3:'Bubble tea · snacks', f1d:'2 min walk', f2d:'3 min walk', f3d:'1 min walk', coupon:'20% off today', remind:"I'll call you back 8 minutes before the bags.", pick:'Go here',
+ conflict:'The screen now says 16', conflictS:'I had 14 earlier. They disagree; the screen wins.', conflictD:"I've changed the route to carousel 16, one more minute. You did nothing wrong; the information changed.", ok:'OK',
+ exitCard:'Exit B', exitSub:'Your person is waiting here', exitDone:'Arrived', arrive:"You're here. The person meeting you is at Exit B, right outside.", done:'OK',
+ fb:'Was there a step today where I did not help you?', fbOk:'All fine', fbNo:'One step was wrong', fbSay:'I want to say something', fbThanks:'Thank you. This goes to the airport help desk (simulated), so next time is better.', fbSorry:"I'm sorry. Tell me which step and I'll record it for the airport help desk (simulated). You won't have to say it twice.",
+ poiCoffee:'Coffee', poiNoodle:'Noodles', poiTea:'Tea', poiGift:'Gifts', poiInfo:'Help desk', poiWC:'Washroom',
+ steps:['Language','Intro','First time?','Four ways','Call staff: Uber card','Staff arrives','On the move','Before immigration','Communication card','Ask about a sign','Inside','Bags: a wait','Something to eat','Screen changed','Exit','Last question']},
+fr:{sim:'Démo de recherche · données simulées, pas d\'information aéroportuaire en direct', you:'Vous êtes ici', gate:'Porte F73', imm:'Contrôle frontalier', bag:'Carrousel à bagages', exit:'Sortie B · point de rencontre', seat:'Sièges', staffName:'Agent 1', vest:'Gilet bleu · services au sol Pearson (simulé)',
+ langTitle:'Quelle langue utilisez-vous ?', langLead:'Choisissez-en une. Tout l\'écran change.', other:'Autre langue', unsupported:'Cette langue n\'est pas encore prête. Vous pouvez utiliser l\'anglais ou demander un agent. Vous ne resterez pas bloqué ici.',
+ intro1:'Bonjour, je suis Seeya. Je vous donne la carte et je vous dis, étape par étape, où aller et quoi préparer.', intro2:'Quand il vous faut une personne, je l\'appelle et je vous dis où elle en est.', intro3:'Deux choses que je ne fais pas : je ne réponds pas aux questions de la douane à votre place. Et « envoyé » ne veut pas dire « accepté » ; je vous le dirai à part.', cont:'D\'accord, continuer',
+ first:'C\'est votre première fois à Toronto ?', firstY:'Première fois', firstN:'Déjà venu',
+ firstAck:'D\'accord, première fois, donc j\'explique davantage. Vous êtes à la porte F73. Prochaine étape : le contrôle frontalier.',
+ nextStep:'Prochaine étape', of:'Étape {a} sur {b}', stepfree:'Sans marches', min:'min', walk:'À pied', call:'Appeler un agent', rest:'S\'asseoir', walkM:'11 min · ascenseurs', callM:'Fauteuil · possible maintenant', restM:'Sièges à 30 m',
+ plan:'Comment voulez-vous y aller ? Tout est possible.',
+ reqSent:'Envoyé', reqRecv:'Reçu', reqAcc:'Accepté', reqWay:'En route', reqHere:'Arrivé',
+ stay:'Restez où vous êtes. Pas besoin de bouger.', eta:'Arrivée', m:'m', cancel:'Annuler', switchWalk:'Plutôt à pied',
+ airport:'Ce que voit le poste de coordination : demande A17 · {s} · dans la fenêtre de 10 min', airport2:'Ce que voit le comptoir d\'aide : demande de langue A18 · {s}',
+ arrived:'L\'agent 1 est là, en gilet bleu. Vous pouvez lui montrer cet écran.', go:'On y va',
+ nav1:'Avancez, suivez les panneaux bleus Arrivées', nav1s:'L\'agent vous pousse · ascenseurs · environ 6 min', nav2:'Le contrôle est juste devant', nav2s:'La file est à gauche',
+ cus1:'Le contrôle frontalier est devant. Ayez votre passeport en main.', cus2:'Ici je ne peux pas répondre à votre place. Vous ne parlez pas anglais : j\'ai déjà envoyé « je parle mandarin » au comptoir d\'aide.', showCard:'Afficher la carte', photo:'Demander pour un panneau', cusIn:'J\'entre',
+ cardL1:'我说中文', cardL2:'请慢一点，或者叫会中文的工作人员', cardL3:'I speak Mandarin. Please speak slowly, or call a Mandarin-speaking staff member.', closeCard:'Fermer',
+ signQ:'Que veut dire ce panneau ?', signA:'« Tous les passeports ». Tout le monde fait la file ici, quelle que soit la nationalité. C\'est votre file.', signSrc:'Source : les mots du panneau. Je traduis seulement, je n\'ajoute rien.',
+ inside:'Suivez l\'agent. Dites-moi quand vous ressortez.', out:'Je suis sorti',
+ bagCard:'Carrousel 14', bagSub:'Bagages dans environ 25 min', bagSrc:'Source : écran de l\'aéroport · 14:31',
+ wait:'Il y a une attente. S\'asseoir, manger quelque chose, ou acheter un cadeau ?', wSit:'S\'asseoir', wEat:'Manger', wGift:'Cadeau',
+ eat:'Les trois sont sur votre chemin vers le carrousel. Choix de l\'aéroport, pas des avis.', f1:'Café · sandwichs', f2:'Nouilles', f3:'Thé aux perles · collations', f1d:'2 min à pied', f2d:'3 min à pied', f3d:'1 min à pied', coupon:'-20 % aujourd\'hui', remind:'Je vous rappelle 8 minutes avant les bagages.', pick:'Aller ici',
+ conflict:'L\'écran dit maintenant 16', conflictS:'J\'avais 14. Ça ne concorde pas ; l\'écran a raison.', conflictD:'J\'ai changé l\'itinéraire vers le carrousel 16, une minute de plus. Vous n\'avez rien fait de mal ; l\'information a changé.', ok:'D\'accord',
+ exitCard:'Sortie B', exitSub:'Votre personne attend ici', exitDone:'Arrivé', arrive:'Vous y êtes. La personne qui vous attend est à la sortie B, juste dehors.', done:'D\'accord',
+ fb:'Y a-t-il eu une étape aujourd\'hui où je ne vous ai pas aidé ?', fbOk:'Tout allait', fbNo:'Une étape était fausse', fbSay:'Je veux dire quelque chose', fbThanks:'Merci. Cela va au comptoir d\'aide de l\'aéroport (simulé), pour faire mieux la prochaine fois.', fbSorry:'Désolé. Dites-moi quelle étape et je le note pour le comptoir d\'aide (simulé). Vous n\'aurez pas à le répéter.',
+ poiCoffee:'Café', poiNoodle:'Nouilles', poiTea:'Thé', poiGift:'Cadeaux', poiInfo:'Aide', poiWC:'Toilettes',
+ steps:['Langue','Intro','Première fois ?','Quatre façons','Appeler : carte Uber','L\'agent arrive','En route','Avant le contrôle','Carte de communication','Un panneau','À l\'intérieur','Bagages : attente','Manger','L\'écran a changé','Sortie','Dernière question']}
+};
+const UNSUP = {es:'Todavía no tengo la pantalla en español. Puede usar inglés o pedir una persona.', ko:'아직 한국어 화면은 준비되지 않았습니다. 영어를 사용하거나 직원을 요청할 수 있습니다.', ja:'日本語の画面はまだ準備中です。英語を使うか、係員を呼べます。', ar:'الواجهة بالعربية غير جاهزة بعد. يمكنك استخدام الإنجليزية أو طلب شخص.', tl:'Wala pa ang Tagalog na screen. Puwede kang gumamit ng English o humiling ng tao.', pa:'ਪੰਜਾਬੀ ਸਕ੍ਰੀਨ ਹਾਲੇ ਤਿਆਰ ਨਹੀਂ। ਤੁਸੀਂ ਅੰਗਰੇਜ਼ੀ ਵਰਤ ਸਕਦੇ ਹੋ ਜਾਂ ਸਟਾਫ਼ ਮੰਗ ਸਕਦੇ ਹੋ।'};
+const LANGS=[['zh','中文'],['en','English'],['fr','Français'],['es','Español'],['ko','한국어'],['ja','日本語'],['ar','العربية'],['pa','ਪੰਜਾਬੀ'],['tl','Tagalog']];
+const TTS_LANG={zh:'zh-CN',en:'en-CA',fr:'fr-CA'};
+const DEFAULT_LANG='en';
+let lang=DEFAULT_LANG, ttsOn=true;
+let BRAND='Seeya';
+const t=(k,v)=>{let s=(I[lang]&&I[lang][k])??I.en[k]??k; if(v) for(const x in v) s=s.replace('{'+x+'}',v[x]); if(BRAND!=='Seeya'&&typeof s==='string') s=s.replace(/Seeya/g,BRAND); return s;};
+
+// ---------- map geometry (viewBox units of the traced T1 plan) ----------
+const P={gate:[671,321], pierMid:[622,290], pierJoin:[571,256], imm:[531,201], bag14:[451,196], bag16:[411,186], seat:[560,240], staff0:[500,182],
+ coffee:[506,148], noodle:[388,190], tea:[468,222], gift:[521,166], info:[526,208], wc:[424,206], exitB:[471,136]};
+const ROUTE_GATE_IMM=[P.gate,P.pierMid,P.pierJoin,P.imm];
+const ROUTE_IMM_BAG=[P.imm,[490,200],P.bag14];
+const ROUTE_BAG_TEA=[P.bag14,[460,208],P.tea];
+const ROUTE_TEA_BAG16=[P.tea,[440,206],P.bag16];
+const ROUTE_BAG16_EXIT=[P.bag16,[430,160],[455,142],P.exitB];
+
+// ---------- map rendering ----------
+const map=document.getElementById('map');
+let cam={x:171,y:36,w:585}, camTarget=null;
+const st={you:P.gate, staff:null, staffVisible:false, routes:[], pois:[], labels:[], endPin:null, altRoute:null};
+function aspect(){const r=map.getBoundingClientRect();return r.height/r.width;}
+function vb(){const h=cam.w*aspect();return `${cam.x} ${cam.y} ${cam.w} ${h}`;}
+function lookAt(pt,w,dy=0.12){const h=w*aspect();camTarget={x:pt[0]-w/2,y:pt[1]-h/2+h*dy,w};}
+function tickCam(){if(camTarget){const k=0.12;cam.x+=(camTarget.x-cam.x)*k;cam.y+=(camTarget.y-cam.y)*k;cam.w+=(camTarget.w-cam.w)*k;if(Math.abs(cam.w-camTarget.w)<0.05&&Math.abs(cam.x-camTarget.x)<0.05&&Math.abs(cam.y-camTarget.y)<0.05)camTarget=null;map.setAttribute('viewBox',vb());}requestAnimationFrame(tickCam);}
+requestAnimationFrame(tickCam);
+function poly(pts){return pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');}
+function render(){
+  const s=cam.w/390; // units per css px
+  const f=x=>(x*s).toFixed(2);
+  let g='<g id="base">'+window.T1_BASE_INNER+'</g>';
+  // labels of places
+  const labels=st.hideLabels?[]:[[P.imm,t('imm')],[P.bag14,t('bag')+' 14'],[P.bag16,t('bag')+' 16'],[P.exitB,t('exit')],[P.gate,t('gate')],[P.seat,t('seat')]];
+  g+='<g id="labels">'+labels.map(([p,l])=>`<text class="mk-label" x="${p[0]}" y="${p[1]-9*s}" text-anchor="middle" style="font-size:${f(11)}px;stroke-width:${f(3)}px">${l}</text>`).join('')+'</g>';
+  // pois
+  g+='<g id="pois">'+st.pois.map(p=>`<g class="poig" data-id="${p.id}"><circle class="poi" cx="${p.at[0]}" cy="${p.at[1]}" r="${f(12)}" ${p.hi?'style="stroke:#1b5fd1;stroke-width:'+f(1.4)+'"':''}/><text class="poi-ic" x="${p.at[0]}" y="${p.at[1]}" style="font-size:${f(12)}px">${p.ic}</text><text class="mk-label${p.hi?'':' dim'}" x="${p.at[0]}" y="${p.at[1]+f(21)*1}" text-anchor="middle" style="font-size:${f(10)}px;stroke-width:${f(3)}px">${p.label}${p.tag?' · '+p.tag:''}</text></g>`).join('')+'</g>';
+  // routes
+  g+='<g id="routes">'+st.routes.map(r=>`<path class="route-halo" style="stroke-width:${f(5.5)}" d="${poly(r.pts)}"/><path class="route${r.alt?' alt':''}" style="stroke-width:${f(3.2)}" d="${poly(r.pts)}"/>`+(r.eta?`<g transform="translate(${r.etaAt[0]},${r.etaAt[1]})"><rect x="${-f(22)}" y="${-f(10)}" width="${f(44)}" height="${f(19)}" rx="${f(5)}" fill="#1b5fd1"/><text class="eta-tag" text-anchor="middle" y="${f(4)}" style="font-size:${f(10)}px">${r.eta}</text></g>`:'')).join('')+'</g>';
+  // end pin
+  if(st.endPin) g+=`<g transform="translate(${st.endPin[0]},${st.endPin[1]})"><path class="pin-end" style="stroke-width:${f(1.2)}" d="M0 0 C ${-f(6)} ${-f(9)} ${-f(7)} ${-f(14)} 0 ${-f(18)} C ${f(7)} ${-f(14)} ${f(6)} ${-f(9)} 0 0 Z"/><circle cx="0" cy="${-f(11)}" r="${f(2.6)}" fill="#fff"/></g>`;
+  // staff
+  if(st.staffVisible&&st.staff) g+=`<g transform="translate(${st.staff[0]},${st.staff[1]})"><circle class="staff" style="stroke-width:${f(1.4)}" r="${f(8)}"/><text text-anchor="middle" y="${f(3.5)}" fill="#fff" style="font-size:${f(9)}px;font-weight:700">S</text><text class="mk-label" y="${-f(12)}" text-anchor="middle" style="font-size:${f(10)}px;stroke-width:${f(3)}px">${t('staffName')}</text></g>`;
+  // you
+  g+=`<g transform="translate(${st.you[0]},${st.you[1]})"><circle class="you-halo" r="${f(14)}"/><circle class="you" style="stroke-width:${f(1.6)}" r="${f(6.5)}"/><text class="mk-label" y="${f(20)}" text-anchor="middle" style="font-size:${f(10)}px;stroke-width:${f(3)}px">${t('you')}</text></g>`;
+  map.innerHTML=g;
+}
+// pan / zoom
+(function(){let drag=null;map.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y};camTarget=null;map.setPointerCapture(e.pointerId)});map.addEventListener('pointermove',e=>{if(!drag)return;const r=map.getBoundingClientRect();const s=cam.w/r.width;cam.x=drag.cx-(e.clientX-drag.x)*s;cam.y=drag.cy-(e.clientY-drag.y)*s;map.setAttribute('viewBox',vb())});map.addEventListener('pointerup',()=>drag=null);map.addEventListener('wheel',e=>{e.preventDefault();camTarget=null;const r=map.getBoundingClientRect();const s=cam.w/r.width;const mx=cam.x+(e.clientX-r.left)*s,my=cam.y+(e.clientY-r.top)*s;const k=Math.exp(e.deltaY*0.002);const nw=Math.min(700,Math.max(60,cam.w*k));const ratio=nw/cam.w;cam.x=mx-(mx-cam.x)*ratio;cam.y=my-(my-cam.y)*ratio;cam.w=nw;map.setAttribute('viewBox',vb());render();},{passive:false});})();
+
+// ---------- animation helpers ----------
+let timers=[];const later=(ms,fn)=>{timers.push(setTimeout(fn,ms))};const clearTimers=()=>{timers.forEach(clearTimeout);timers=[];anims.forEach(cancelAnimationFrame);anims=[]};
+let anims=[];
+function moveAlong(key,pts,ms,onDone){const segs=[];let L=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);segs.push(d);L+=d;}const t0=performance.now();function step(now){const u=Math.min(1,(now-t0)/ms);let d=u*L,i=0;while(i<segs.length-1&&d>segs[i]){d-=segs[i];i++;}const a=pts[i],b=pts[i+1],k=segs[i]?d/segs[i]:1;st[key]=[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];render();if(u<1)anims.push(requestAnimationFrame(step));else if(onDone)onDone();}anims.push(requestAnimationFrame(step));}
+
+// ---------- UI pieces ----------
+const $=id=>document.getElementById(id);
+const SPEAK=[];function reg(txt){SPEAK.push(txt);return SPEAK.length-1;}function speakIdx(i){speak(SPEAK[i]||'');}
+function speak(text){if(!ttsOn||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g,''));u.lang=TTS_LANG[lang]||'en-CA';u.rate=0.95;speechSynthesis.speak(u);}catch(e){}}
+function topcard(html){const el=$('topcard');if(!html){el.classList.add('hidden');return;}el.innerHTML=html;el.classList.remove('hidden');}
+function banner(html,amber){const el=$('banner');if(!html){el.classList.add('hidden');return;}el.innerHTML=html;el.className=amber?'amber':'';}
+function drawer(html,say){$('drawerbody').innerHTML=html;if(say)speak(say);}
+function modal(html){const el=$('modal');if(!html){el.classList.add('hidden');el.innerHTML='';return;}el.innerHTML=html;el.classList.remove('hidden');}
+function say(lines,extra){return `<div class="say"><div class="avatar"></div><div style="flex:1">${lines.map(l=>`<p>${l}</p>`).join('')}${extra||''}</div><button class="spk" onclick="speakIdx(${reg(lines.join(' '))})" aria-label="read aloud">🔈</button></div>`;}
+function chips(list){return `<div class="chips">${list.map(([l,fn,cls])=>`<button class="chip ${cls||''}" onclick="${fn}">${l}</button>`).join('')}</div>`;}
+function statusRow(n,times){const keys=['reqSent','reqRecv','reqAcc','reqWay','reqHere'];return `<div class="status">${keys.map((k,i)=>`<span class="s${i<n?' on':''}">${t(k)}${i<n&&times&&times[i]?' '+times[i]:''}</span>`).join('')}</div>`;}
+function stepCard(main,sub,a,b,meta){return `<div class="tc-row"><span class="dot"></span><div style="flex:1"><div class="tc-sub">${t('you')}</div></div><span class="tc-prog">${t('of',{a,b})}</span><button class="gear" onclick="openSettings()" aria-label="settings">⚙</button></div><div class="tc-row"><span class="pin"></span><div style="flex:1"><div class="tc-sub">${t('nextStep')}</div><div class="tc-main">${main}</div>${sub?`<div class="tc-sub">${sub}</div>`:''}</div><button class="spk" onclick="speakIdx(${reg(main+'. '+(sub||''))})">🔈</button></div>${meta?`<div class="tc-meta">${meta}</div>`:''}`;}
+function setClock(s){$('clock').textContent=s;}
+
+// ---------- the script: one beat per step ----------
+let clockBase=null;
+const STEPS=[
+ {id:'lang', enter(){ st.you=P.gate; st.routes=[]; st.pois=[]; st.endPin=null; st.staffVisible=false; lookAt(P.gate,260); render(); topcard(null); banner(null); drawer('');
+   modal(`<h1>${t('langTitle')}</h1><p class="lead">${t('langLead')}</p><div class="langs">${LANGS.map(([c,n])=>`<button class="lang${I[c]?'':' dim'}" onclick="pickLang('${c}')">${n}</button>`).join('')}<button class="lang dim" onclick="pickLang('other')">${t('other')}</button></div><div id="langnote"></div>`); setClock('14:01'); }},
+ {id:'intro', enter(){ modal(null); lookAt(P.gate,220); render(); topcard(stepCard(t('imm'),null,1,5,`<span>⏱ <b>11 ${t('min')}</b></span><span>♿ ${t('stepfree')}</span>`));
+   drawer(say([t('intro1'),t('intro2'),`<span class="small">${t('intro3')}</span>`],chips([[t('cont'),'go(2)','primary']])),t('intro1')+' '+t('intro2')); }},
+ {id:'first', enter(){ drawer(say([t('first')],chips([[t('firstY'),'go(3)','primary'],[t('firstN'),'go(3)']])),t('first')); }},
+ {id:'plan', enter(){ st.routes=[{pts:ROUTE_GATE_IMM,eta:'11 '+t('min'),etaAt:[600,278]}]; lookAt([600,265],300); render(); setClock('14:02');
+   drawer(say([t('firstAck'),t('plan')],`<div class="plans"><button class="plan" onclick="go(6)"><div class="t">🚶 ${t('walk')}</div><div class="v">11 <small>${t('min')}</small></div><div class="m">${t('walkM')}</div></button><button class="plan hi" onclick="go(4)"><div class="t">♿ ${t('call')}</div><div class="v">4 <small>${t('min')}</small></div><div class="m">${t('callM')}</div></button><button class="plan" onclick="go(4)"><div class="t">🪑 ${t('rest')}</div><div class="v">30 <small>${t('m')}</small></div><div class="m">${t('restM')}</div></button></div>`),t('firstAck')+' '+t('plan')); }},
+ {id:'call', enter(){ st.staff=P.staff0; st.staffVisible=false; st.routes=[{pts:ROUTE_GATE_IMM,alt:true}]; lookAt([610,285],200); render();
+   const times=['14:02','14:02','14:03']; let n=1; const draw=(eta,dist)=>drawer(`<div class="req"><div class="who"><div class="badge">S1</div><div><div class="name">${t('staffName')}</div><div class="vest">${t('vest')}</div></div><div class="eta"><b>${eta}</b><span>${t('min')} · ${dist} ${t('m')}</span></div></div><div class="big">${t('stay')}</div>${statusRow(n,times)}<div class="airport">${t('airport',{s:[t('reqSent'),t('reqRecv'),t('reqAcc'),t('reqWay')][Math.min(n,4)-1]})}</div></div>${chips([[t('switchWalk'),'go(6)','quiet'],[t('cancel'),'go(3)','quiet']])}`);
+   draw('—','—'); speak(t('stay'));
+   later(900,()=>{n=2;draw('—','—')}); later(2000,()=>{n=3;draw(4,180);setClock('14:03')}); later(3200,()=>{n=4;st.staffVisible=true;draw(4,180);render(); moveAlong('staff',[P.staff0,[520,196],P.imm,P.pierJoin,P.pierMid,[660,316]],9000,()=>{draw(0,5);}); later(3000,()=>draw(3,120)); later(6000,()=>draw(2,70)); later(8000,()=>draw(1,30));}); }},
+ {id:'here', enter(){ st.staff=[660,316]; st.staffVisible=true; st.routes=[{pts:ROUTE_GATE_IMM,eta:'6 '+t('min'),etaAt:[600,278]}]; lookAt([640,300],180); render(); setClock('14:07');
+   drawer(`<div class="req"><div class="who"><div class="badge">S1</div><div><div class="name">${t('staffName')}</div><div class="vest">${t('vest')}</div></div><div class="eta"><b>0</b><span>${t('min')}</span></div></div>${statusRow(5,['14:02','14:02','14:03','14:03','14:07'])}</div>`+say([t('arrived')],chips([[t('go'),'go(6)','primary']])),t('arrived')); }},
+ {id:'move', enter(){ setClock('14:08'); topcard(null); banner(`<div class="arrow">⬆</div><div class="txt">${t('nav1')}<div class="sub">${t('nav1s')}</div></div>`); drawer(`<div class="note2">${t('nav1s')}</div>`); speak(t('nav1'));
+   st.routes=[{pts:ROUTE_GATE_IMM}]; st.staffVisible=true; lookAt(P.pierMid,220); render();
+   moveAlong('you',ROUTE_GATE_IMM,7000,()=>{banner(`<div class="arrow">⬆</div><div class="txt">${t('nav2')}<div class="sub">${t('nav2s')}</div></div>`);speak(t('nav2'));later(1200,()=>go(7));});
+   moveAlong('staff',[[660,316],P.pierMid,P.pierJoin,[536,206]],7000);
+   let i=0; const cams=[P.pierMid,P.pierJoin,P.imm]; later(2500,()=>lookAt(cams[1],200)); later(5000,()=>lookAt(cams[2],200)); }},
+ {id:'customs', enter(){ st.you=P.imm; st.staff=[536,206]; st.routes=[]; lookAt(P.imm,170); render(); setClock('14:13'); banner(null);
+   topcard(stepCard(t('imm'),null,2,5));
+   drawer(say([t('cus1'),t('cus2')],`${statusRow(2,['14:13','14:13'])}<div class="airport">${t('airport2',{s:t('reqRecv')})}</div>`+chips([[t('showCard'),'go(8)','primary'],[t('photo'),'go(9)'],[t('cusIn'),'go(10)','quiet']])),t('cus1')+' '+t('cus2')); }},
+ {id:'card', enter(){ modal(`<div class="card"><div class="l1">${t('cardL1')}</div><div class="l2">${t('cardL2')}</div><div class="l3">${t('cardL3')}</div></div><button class="close" onclick="go(7)">${t('closeCard')}</button>`); }},
+ {id:'photo', enter(){ modal(`<h1>${t('signQ')}</h1><div class="sign">↑ ALL PASSPORTS<small>所有护照 · Tous les passeports</small></div>`+say([t('signA'),`<span class="small">${t('signSrc')}</span>`])+`<button class="close" onclick="go(7)">${t('closeCard')}</button>`); speak(t('signA')); }},
+ {id:'inside', enter(){ modal(null); st.staffVisible=false; lookAt(P.imm,170); render(); setClock('14:31'); topcard(stepCard(t('imm'),null,2,5));
+   drawer(say([t('inside')],chips([[t('out'),'go(11)','primary']])),t('inside')); }},
+ {id:'bags', enter(){ st.you=[500,200]; st.routes=[{pts:ROUTE_IMM_BAG,eta:'2 '+t('min'),etaAt:[478,214]}]; st.pois=[{id:'info',at:P.info,ic:'ℹ️',label:t('poiInfo')},{id:'wc',at:P.wc,ic:'🚻',label:t('poiWC')}]; lookAt([470,195],190); render(); setClock('14:32');
+   topcard(stepCard(t('bagCard'),t('bagSub'),3,5,`<span>🕒 <b>25 ${t('min')}</b></span><span class="src">${t('bagSrc')}</span>`));
+   drawer(say([t('wait')],chips([[t('wSit'),'go(12)'],[t('wEat'),'go(12)','primary'],[t('wGift'),'go(12)']])),t('wait')); }},
+ {id:'eat', enter(){ setClock('14:35'); st.pois=[{id:'coffee',at:P.coffee,ic:'☕',label:t('poiCoffee'),tag:t('f1d')},{id:'noodle',at:P.noodle,ic:'🍜',label:t('poiNoodle'),tag:t('f2d')},{id:'tea',at:P.tea,ic:'🧋',label:t('poiTea'),tag:t('coupon'),hi:true},{id:'info',at:P.info,ic:'ℹ️',label:t('poiInfo')}]; st.routes=[{pts:ROUTE_IMM_BAG,alt:true}]; lookAt([455,190],200); render();
+   drawer(say([t('eat')],`<div class="list"><div class="item" onclick="pickFood('coffee')"><div class="ic">☕</div><div><div class="n">${t('f1')}</div><div class="d">${t('f1d')}</div></div></div><div class="item" onclick="pickFood('noodle')"><div class="ic">🍜</div><div><div class="n">${t('f2')}</div><div class="d">${t('f2d')}</div></div></div><div class="item hi" onclick="pickFood('tea')"><div class="ic">🧋</div><div><div class="n">${t('f3')}</div><div class="d">${t('f3d')}</div></div><span class="tag">${t('coupon')}</span></div></div>`),t('eat')); }},
+ {id:'conflict', enter(){ st.you=P.tea; st.pois=st.pois.filter(p=>p.id!=='coffee'&&p.id!=='noodle'); st.routes=[{pts:ROUTE_TEA_BAG16,eta:'2 '+t('min'),etaAt:[438,198]},{pts:[P.tea,[460,208],P.bag14],alt:true}]; lookAt([435,195],170); render(); setClock('14:49');
+   banner(`<div class="arrow">!</div><div class="txt">${t('conflict')}<div class="sub">${t('conflictS')}</div></div>`,true); topcard(null);
+   drawer(say([t('conflictD')],chips([[t('ok'),'go(14)','primary']])),t('conflict')+'. '+t('conflictD')); }},
+ {id:'exit', enter(){ banner(null); st.you=P.bag16; st.pois=[]; st.routes=[{pts:ROUTE_BAG16_EXIT,eta:'3 '+t('min'),etaAt:[440,150]}]; st.endPin=P.exitB; lookAt([445,165],170); render(); setClock('15:02');
+   topcard(stepCard(t('exitCard'),t('exitSub'),5,5)); drawer(`<div class="note2">${t('exitSub')} · ${t('stepfree')}</div>`);
+   moveAlong('you',ROUTE_BAG16_EXIT,5000,()=>{topcard(stepCard(t('exitCard'),t('exitDone'),5,5));drawer(say([t('arrive')],chips([[t('done'),'go(15)','primary']])),t('arrive'));}); }},
+ {id:'feedback', enter(){ setClock('15:05'); drawer(say([t('fb')],chips([[t('fbOk'),"fbAnswer('ok')"],[t('fbNo'),"fbAnswer('no')"],[t('fbSay'),"fbAnswer('say')"]])),t('fb')); }}
+];
+
+// ---------- additions, night of 09-11 (goal run) ----------
+Object.assign(I.zh,{
+ leave:'怎么离开机场', leaveIntro:'接你的人在 B 出口。如果没人接，从这里也能走，都在图上。', lvMeet:'有人接', lvMeetD:'B 出口 · 就在前面', lvTaxi:'打车', lvTaxiD:'出租车在 GTC · 走 4 分钟 · 平地', lvRide:'Uber / Lyft', lvRideD:'上车点在楼下 · 坐电梯 · 走 6 分钟', lvUp:'UP Express 火车', lvUpD:'跟着 Train to City 标 · 走 8 分钟 · 有电梯', lvBus:'公交', lvBusD:'公交在楼下 · 坐电梯 · 走 7 分钟',
+ lvPicked:'好，我把路画出来了。到了上车点我再说一声。', lvMeetOk:'好，接你的人就在 B 出口，你出去就能看到。', tt:'出租车上车点', up:'UP Express 车站', bus:'公交站', ride:'网约车上车点',
+ settings:'设置', sHc:'高对比', sHcD:'黑字白底，线更粗', sBig:'大字', sBigD:'所有字再大一号', sTts:'朗读', sTtsD:'每张卡都念出来', sText:'纯文字', sTextD:'不播任何声音，语音内容都变成字', sRm:'减少动画', sRmD:'地图不滑动，直接跳', sHap:'震动提示', sHapD:'有新消息时震一下（演示里不震）', close:'关闭',
+ fbPick:'是哪一步？点一下。', fbWhat:'哪里不对？', fbW1:'等太久', fbW2:'没人来', fbW3:'信息不对', fbW4:'态度', fbW5:'其他', fbVoice:'说一段也行', fbSend:'交给机场服务台',
+ fbDone:'已经交给机场服务台了。', fbRef:'编号', fbRef2:'这条带着今天的时间线一起过去，你不用再解释一遍。机场会在 2 个工作日内回复到这里（模拟）。',
+ tlGate:'F73 · 叫轮椅', tlAcc:'工作人员接单', tlHere:'工作人员到达', tlImm:'入境检查 · 语言请求', tlBag:'行李 · 转盘改号', tlExit:'B 出口',
+ stepsAdd:['怎么离开机场','最后一句','投诉：哪一步','投诉：已交']
+});
+Object.assign(I.en,{
+ leave:'How to leave the airport', leaveIntro:"Your person is at Exit B. If nobody were meeting you, you could leave from here too. All on the map.", lvMeet:'Someone meets me', lvMeetD:'Exit B · just ahead', lvTaxi:'Taxi', lvTaxiD:'Taxis at the GTC · 4 min walk · level', lvRide:'Uber / Lyft', lvRideD:'Pickup is one floor down · elevator · 6 min', lvUp:'UP Express train', lvUpD:'Follow "Train to City" · 8 min · elevators', lvBus:'Bus', lvBusD:'Buses one floor down · elevator · 7 min',
+ lvPicked:"OK, the route is drawn. I'll tell you when you reach the pickup point.", lvMeetOk:"OK. Your person is at Exit B, right outside.", tt:'Taxi pickup', up:'UP Express station', bus:'Bus stop', ride:'Rideshare pickup',
+ settings:'Settings', sHc:'High contrast', sHcD:'Black on white, thicker lines', sBig:'Larger text', sBigD:'Everything one size up', sTts:'Read aloud', sTtsD:'Every card is spoken', sText:'Text only', sTextD:'No sound at all; anything spoken becomes text', sRm:'Reduce motion', sRmD:'Map jumps instead of sliding', sHap:'Vibration alerts', sHapD:'Buzz on new messages (not in this demo)', close:'Close',
+ fbPick:'Which step? Tap it.', fbWhat:'What went wrong?', fbW1:'Waited too long', fbW2:'Nobody came', fbW3:'Wrong information', fbW4:'Attitude', fbW5:'Other', fbVoice:'Or say it', fbSend:'Send to the airport help desk',
+ fbDone:'Sent to the airport help desk.', fbRef:'Reference', fbRef2:"It goes with today's timeline attached, so you won't have to explain again. The airport replies here within 2 working days (simulated).",
+ tlGate:'F73 · wheelchair requested', tlAcc:'Staff accepted', tlHere:'Staff arrived', tlImm:'Immigration · language request', tlBag:'Bags · carousel changed', tlExit:'Exit B',
+ stepsAdd:['How to leave','Last question','Complaint: which step','Complaint: sent']
+});
+Object.assign(I.fr,{
+ leave:'Comment quitter l\'aéroport', leaveIntro:'Votre personne est à la sortie B. Sans personne, vous pourriez aussi partir d\'ici. Tout est sur la carte.', lvMeet:'On vient me chercher', lvMeetD:'Sortie B · juste devant', lvTaxi:'Taxi', lvTaxiD:'Taxis au GTC · 4 min · plain-pied', lvRide:'Uber / Lyft', lvRideD:'Un étage plus bas · ascenseur · 6 min', lvUp:'Train UP Express', lvUpD:'Suivez « Train to City » · 8 min · ascenseurs', lvBus:'Autobus', lvBusD:'Un étage plus bas · ascenseur · 7 min',
+ lvPicked:'D\'accord, l\'itinéraire est tracé. Je vous préviens au point de prise en charge.', lvMeetOk:'D\'accord. Votre personne est à la sortie B, juste dehors.', tt:'Taxis', up:'Gare UP Express', bus:'Arrêt d\'autobus', ride:'Covoiturage',
+ settings:'Réglages', sHc:'Contraste élevé', sHcD:'Noir sur blanc, lignes plus épaisses', sBig:'Gros caractères', sBigD:'Tout une taille au-dessus', sTts:'Lecture à voix haute', sTtsD:'Chaque carte est lue', sText:'Texte seulement', sTextD:'Aucun son ; tout ce qui est parlé devient du texte', sRm:'Moins d\'animation', sRmD:'La carte saute au lieu de glisser', sHap:'Vibrations', sHapD:'Vibre aux nouveaux messages (pas dans cette démo)', close:'Fermer',
+ fbPick:'Quelle étape ? Touchez-la.', fbWhat:'Qu\'est-ce qui n\'allait pas ?', fbW1:'Trop d\'attente', fbW2:'Personne n\'est venu', fbW3:'Mauvaise information', fbW4:'Attitude', fbW5:'Autre', fbVoice:'Ou dites-le', fbSend:'Envoyer au comptoir d\'aide',
+ fbDone:'Envoyé au comptoir d\'aide de l\'aéroport.', fbRef:'Référence', fbRef2:'La chronologie du jour part avec, vous n\'aurez pas à réexpliquer. L\'aéroport répond ici sous 2 jours ouvrables (simulé).',
+ tlGate:'F73 · fauteuil demandé', tlAcc:'Agent a accepté', tlHere:'Agent arrivé', tlImm:'Contrôle · demande de langue', tlBag:'Bagages · carrousel changé', tlExit:'Sortie B',
+ stepsAdd:['Quitter l\'aéroport','Dernière question','Plainte : quelle étape','Plainte : envoyée']
+});
+for(const L of ['zh','en','fr']){I[L].steps=I[L].steps.slice(0,15).concat(I[L].stepsAdd);}
+
+// map points for leaving (positions approximate, simulated)
+P.taxi=[430,126]; P.up=[400,94]; P.bus=[532,128]; P.ride=[494,104];
+const ROUTE_EXIT_TAXI=[P.exitB,[452,128],P.taxi];
+const ROUTE_EXIT_UP=[P.exitB,[440,122],[420,105],P.up];
+const ROUTE_EXIT_BUS=[P.exitB,[498,130],P.bus];
+const ROUTE_EXIT_RIDE=[P.exitB,[478,118],P.ride];
+
+// settings
+const settings={hc:false,big:false,tts:true,text:false,rm:false,hap:false};
+function applySettings(){const sc=$('screen');sc.classList.toggle('hc',settings.hc);sc.classList.toggle('big',settings.big);sc.classList.toggle('rm',settings.rm);ttsOn=settings.tts&&!settings.text;$('tts').textContent=ttsOn?pres('ttsOn'):pres('ttsOff');if(!ttsOn&&window.speechSynthesis)speechSynthesis.cancel();}
+function toggleSetting(k){settings[k]=!settings[k];if(k==='text'&&settings.text)settings.tts=false;if(k==='tts'&&settings.tts)settings.text=false;applySettings();openSettings();}
+function openSettings(){const row=(k,ic)=>`<div class="tg${settings[k]?' on':''}" onclick="toggleSetting('${k}')"><div>${ic} ${t('s'+k[0].toUpperCase()+k.slice(1))}<small>${t('s'+k[0].toUpperCase()+k.slice(1)+'D')}</small></div><div class="sw"></div></div>`;
+ modal(`<h1>${t('settings')}</h1><div class="toggles">${row('hc','◐')}${row('big','🔠')}${row('tts','🔈')}${row('text','💬')}${row('rm','🐢')}${row('hap','📳')}</div><button class="close" onclick="modal(null)">${t('close')}</button>`);}
+$('tts').onclick=()=>{settings.tts=!settings.tts;if(settings.tts)settings.text=false;applySettings();};
+
+// leave beat (inserted at index 15) and complaint beats (17, 18)
+const leaveStep={id:'leave', enter(){ setClock('15:03'); banner(null); st.you=P.exitB; st.endPin=null; st.routes=[]; st.pois=[{id:'taxi',at:P.taxi,ic:'🚕',label:t('tt')},{id:'ride',at:P.ride,ic:'🚗',label:t('ride')},{id:'up',at:P.up,ic:'🚆',label:t('up')},{id:'bus',at:P.bus,ic:'🚌',label:t('bus')}]; lookAt([466,112],240,0.18); render();
+ topcard(stepCard(t('leave'),null,5,5));
+ drawer(say([t('leaveIntro')],`<div class="list grid2"><div class="item hi" onclick="pickLeave('meet')"><div class="ic">🙋</div><div><div class="n">${t('lvMeet')}</div><div class="d">${t('lvMeetD')}</div></div></div><div class="item" onclick="pickLeave('taxi')"><div class="ic">🚕</div><div><div class="n">${t('lvTaxi')}</div><div class="d">${t('lvTaxiD')}</div></div></div><div class="item" onclick="pickLeave('ride')"><div class="ic">🚗</div><div><div class="n">${t('lvRide')}</div><div class="d">${t('lvRideD')}</div></div></div><div class="item" onclick="pickLeave('up')"><div class="ic">🚆</div><div><div class="n">${t('lvUp')}</div><div class="d">${t('lvUpD')}</div></div></div><div class="item" onclick="pickLeave('bus')"><div class="ic">🚌</div><div><div class="n">${t('lvBus')}</div><div class="d">${t('lvBusD')}</div></div></div></div>`),t('leaveIntro')); }};
+function pickLeave(k){ if(k==='meet'){st.routes=[];st.endPin=P.exitB;st.pois=[];render();drawer(say([t('lvMeetOk')],chips([[t('done'),'go(16)','primary']])),t('lvMeetOk'));return;}
+ const R={taxi:ROUTE_EXIT_TAXI,ride:ROUTE_EXIT_RIDE,up:ROUTE_EXIT_UP,bus:ROUTE_EXIT_BUS}[k]; const eta={taxi:'4',ride:'6',up:'8',bus:'7'}[k];
+ st.pois.forEach(p=>p.hi=(p.id===k)); lookAt([(R[0][0]+R[R.length-1][0])/2,(R[0][1]+R[R.length-1][1])/2],220,0.02); st.routes=[{pts:R,eta:eta+' '+t('min'),etaAt:[(R[0][0]+R[R.length-1][0])/2-6,(R[0][1]+R[R.length-1][1])/2-8]}]; st.endPin=R[R.length-1]; render();
+ topcard(stepCard(t({taxi:'tt',ride:'ride',up:'up',bus:'bus'}[k]),t({taxi:'lvTaxiD',ride:'lvRideD',up:'lvUpD',bus:'lvBusD'}[k]),5,5));
+ drawer(say([t('lvPicked')],chips([[t('done'),'go(16)','primary']])),t('lvPicked')); }
+const TL=()=>[['14:02','tlGate'],['14:03','tlAcc'],['14:07','tlHere'],['14:13','tlImm'],['14:49','tlBag'],['15:02','tlExit']];
+let fbStep=null;
+const fbPickStep={id:'fbpick', enter(){ setClock('15:06'); st.you=P.exitB; st.routes=[]; st.pois=[]; st.endPin=P.exitB; lookAt(P.exitB,220); render(); topcard(stepCard(t('exitCard'),t('exitDone'),5,5)); drawer(say([t('fbPick')],`<div class="timeline">${TL().map(([tm,k],i)=>`<div class="tl${fbStep===i?' hi':''}" onclick="fbChoose(${i})"><span class="tm">${tm}</span><span class="tx">${t(k)}</span></div>`).join('')}</div>`),t('fbPick')); }};
+function fbChoose(i){fbStep=i;drawer(say([t('fbWhat')],`<div class="timeline"><div class="tl hi"><span class="tm">${TL()[i][0]}</span><span class="tx">${t(TL()[i][1])}</span></div></div>`+chips([[t('fbW1'),'go(18)'],[t('fbW2'),'go(18)'],[t('fbW3'),'go(18)'],[t('fbW4'),'go(18)'],[t('fbW5'),'go(18)'],['🎤 '+t('fbVoice'),'go(18)','quiet']])),t('fbWhat'));}
+const fbSentStep={id:'fbsent', enter(){ setClock('15:07'); st.you=P.exitB; st.routes=[]; st.pois=[]; st.endPin=P.exitB; lookAt(P.exitB,220); render(); topcard(stepCard(t('exitCard'),t('exitDone'),5,5)); const i=fbStep??4; drawer(say([t('fbDone')],`<div class="ref"><b>${t('fbRef')} F-0911-03</b><br>${TL()[i][0]} · ${t(TL()[i][1])}<br><br>${t('fbRef2')}</div>`),t('fbDone')+' '+t('fbRef2')); }};
+STEPS.splice(15,0,leaveStep); STEPS.push(fbPickStep,fbSentStep);
+STEPS[16].enter=function(){ setClock('15:05'); st.you=P.exitB; st.pois=[]; st.routes=[]; st.endPin=P.exitB; lookAt(P.exitB,220); render(); topcard(stepCard(t('exitCard'),t('exitDone'),5,5)); banner(null); drawer(say([t('fb')],chips([[t('fbOk'),"fbAnswer('ok')"],[t('fbNo'),'go(17)'],[t('fbSay'),'go(17)']])),t('fb')); };
+
+// ---------- additions 2 (goal run, 02:10) ----------
+Object.assign(I.zh,{
+ selfWc:'自助轮椅', selfWcM:'指定区域 · 不用预约 · 走 2 分钟', seat:'座位 · 安静区',
+ consent:'我会把你的位置和"需要轮椅"发给机场服务台，只发这两样。可以吗？', consentY:'好，发吧', consentN:'先不要',
+ noack1:'还没有人接。', noack2:'3 分钟没人接。我已经转给机场服务台，他们会派人，或者告诉你怎么走。（拟议流程，接收团队待确认）', noack3:'服务台接了，派人来接你。', esc:'已转服务台', noackAirport:'机场协调台看到的：请求 A17 · 服务商 3 分钟未接 · 14:05 升级到 Passenger Care · 14:06 服务台接手',
+ offline:'网络断了 · 计划和沟通卡还能用 · 不会再发新请求', offlineSay:'网络断了。你现在的计划、沟通卡和路线还在，我不会再发新请求；恢复了我告诉你。',
+ inph:'跟 Seeya 说…', notyet:'这个版本里请用按钮。打字和说话是下一版。',
+ overview:'今天的路', ovGate:'下飞机 · F73', ovImm:'入境检查', ovBag:'行李', ovExit:'B 出口', ovLeave:'离开机场', ovDone:'完成', ovCur:'现在', ovNext:'接下来',
+ srcTitle:'这条信息从哪来', srcFrom:'来源', srcAt:'更新时间', srcAge:'多久前', srcRule:'规则：如果和现场屏幕不一样，以屏幕为准；我会当面说。', srcAirport:'机场航班信息屏（模拟）',
+ passport:'Hua · 72 岁', ppSub:'中文 · 大字 · 轮椅（到了才要）· 向日葵挂绳：无', ppNote:'这张卡只有你能看。发请求时只发需要的那两样。',
+ deskTitle:'服务台能做什么', d1:'指路、叫轮椅', d2:'中文志愿者（今天有 · 模拟）', d3:'向日葵挂绳：隐形残障可领，工作人员会多给时间（Pearson 真的有）', d4:'Aira：视障旅客连线远程真人看路（Pearson 免费提供，真的有）', d5:'投诉与反馈', d6:'自助轮椅在哪',
+ airportTitle:'机场协调台看到的', airportNote:'没有对话，没有购物偏好，只有事件。', evA17:'轮椅请求 · F73', evAcc:'服务商接单', evHere:'工作人员到达', evA18:'语言请求 · 入境前', evBag:'转盘 14→16 · 已通知旅客', evFb:'旅客反馈：14:49 那步"信息不对"',
+ endTitle:'旅程结束', endText:'今天的记录会在 30 天后自动删除。现在删也可以。', endKeep:'好', endDel:'现在删', endDeleted:'删了。什么都没留下。', endBtn:'结束旅程',
+ stepsAdd2:['结束与删除']
+});
+Object.assign(I.en,{
+ selfWc:'Self-service wheelchair', selfWcM:'Designated area · no booking · 2 min walk', seat:'Seats · quiet area',
+ consent:"I'll send your location and 'needs a wheelchair' to the airport help desk. Only those two. OK?", consentY:'Yes, send it', consentN:'Not now',
+ noack1:'Nobody has taken it yet.', noack2:"No one took it in 3 minutes. I've passed it to the airport help desk; they'll send someone or tell you how to go. (Proposed path; receiving team to be confirmed.)", noack3:'The help desk took it and is sending someone.', esc:'Escalated', noackAirport:'What the coordination desk sees: request A17 · provider silent for 3 min · 14:05 escalated to Passenger Care · 14:06 desk took it',
+ offline:'Offline · your plan and card still work · no new requests will be sent', offlineSay:"The network is down. Your plan, card and route are still here. I won't send new requests; I'll tell you when it's back.",
+ inph:'Talk to Seeya…', notyet:'Use the buttons in this version. Typing and voice are next.',
+ overview:"Today's route", ovGate:'Off the plane · F73', ovImm:'Immigration', ovBag:'Bags', ovExit:'Exit B', ovLeave:'Leaving the airport', ovDone:'Done', ovCur:'Now', ovNext:'Next',
+ srcTitle:'Where this comes from', srcFrom:'Source', srcAt:'Updated', srcAge:'Age', srcRule:"Rule: if it differs from the screen in front of you, the screen wins, and I'll say so.", srcAirport:'Airport flight information screen (simulated)',
+ passport:'Hua · 72', ppSub:'Mandarin · large text · wheelchair (asked on arrival) · Sunflower lanyard: no', ppNote:'Only you see this card. A request sends only the two things it needs.',
+ deskTitle:'What the help desk can do', d1:'Directions, call a wheelchair', d2:'Mandarin volunteer (today · simulated)', d3:'Sunflower lanyard for non-visible disabilities; staff give extra time (Pearson really offers this)', d4:'Aira: remote human visual interpreter for blind travellers (free at Pearson, real)', d5:'Complaints and feedback', d6:'Where the self-service wheelchairs are',
+ airportTitle:'What the airport desk sees', airportNote:'No conversation, no shopping preferences. Events only.', evA17:'Wheelchair request · F73', evAcc:'Provider accepted', evHere:'Staff arrived', evA18:'Language request · before immigration', evBag:'Carousel 14→16 · passenger told', evFb:"Passenger feedback: 14:49 step 'wrong information'",
+ endTitle:'Journey finished', endText:"Today's record deletes itself in 30 days. You can delete it now.", endKeep:'OK', endDel:'Delete now', endDeleted:'Deleted. Nothing kept.', endBtn:'Finish journey',
+ stepsAdd2:['Finish & delete']
+});
+Object.assign(I.fr,{
+ selfWc:'Fauteuil en libre-service', selfWcM:'Zone désignée · sans réservation · 2 min', seat:'Sièges · zone calme',
+ consent:'J\'envoie votre position et « besoin d\'un fauteuil » au comptoir d\'aide. Seulement ces deux choses. D\'accord ?', consentY:'Oui, envoyez', consentN:'Pas maintenant',
+ noack1:'Personne ne l\'a encore pris.', noack2:'Personne en 3 minutes. Je l\'ai transmis au comptoir d\'aide ; ils enverront quelqu\'un ou vous diront comment faire. (Parcours proposé ; équipe réceptrice à confirmer.)', noack3:'Le comptoir a pris la demande et envoie quelqu\'un.', esc:'Transmis', noackAirport:'Ce que voit le poste de coordination : demande A17 · fournisseur silencieux 3 min · 14:05 transmis à Passenger Care · 14:06 pris en charge',
+ offline:'Hors ligne · votre plan et la carte fonctionnent · aucune nouvelle demande ne sera envoyée', offlineSay:'Le réseau est coupé. Votre plan, la carte et l\'itinéraire restent là. Je n\'envoie pas de nouvelle demande ; je vous dirai quand ça revient.',
+ inph:'Parler à Seeya…', notyet:'Utilisez les boutons dans cette version. Le texte et la voix arrivent ensuite.',
+ overview:'Le trajet d\'aujourd\'hui', ovGate:'Descente · F73', ovImm:'Contrôle frontalier', ovBag:'Bagages', ovExit:'Sortie B', ovLeave:'Quitter l\'aéroport', ovDone:'Fait', ovCur:'Maintenant', ovNext:'Ensuite',
+ srcTitle:'D\'où vient cette information', srcFrom:'Source', srcAt:'Mise à jour', srcAge:'Âge', srcRule:'Règle : si l\'écran devant vous dit autre chose, l\'écran gagne, et je le dirai.', srcAirport:'Écran d\'information de l\'aéroport (simulé)',
+ passport:'Hua · 72 ans', ppSub:'Mandarin · gros caractères · fauteuil (demandé à l\'arrivée) · cordon Tournesol : non', ppNote:'Vous seule voyez cette carte. Une demande n\'envoie que ce qu\'il lui faut.',
+ deskTitle:'Ce que le comptoir d\'aide peut faire', d1:'Indiquer le chemin, appeler un fauteuil', d2:'Bénévole mandarin (aujourd\'hui · simulé)', d3:'Cordon Tournesol pour handicaps invisibles ; le personnel accorde plus de temps (réel à Pearson)', d4:'Aira : interprète visuel humain à distance pour les voyageurs aveugles (gratuit à Pearson, réel)', d5:'Plaintes et commentaires', d6:'Où sont les fauteuils en libre-service',
+ airportTitle:'Ce que voit le comptoir de l\'aéroport', airportNote:'Pas de conversation, pas de préférences d\'achat. Des événements seulement.', evA17:'Demande de fauteuil · F73', evAcc:'Fournisseur a accepté', evHere:'Agent arrivé', evA18:'Demande de langue · avant le contrôle', evBag:'Carrousel 14→16 · passagère informée', evFb:'Retour de la passagère : étape 14:49 « mauvaise information »',
+ endTitle:'Trajet terminé', endText:'Le dossier d\'aujourd\'hui s\'efface de lui-même dans 30 jours. Vous pouvez l\'effacer maintenant.', endKeep:'D\'accord', endDel:'Effacer maintenant', endDeleted:'Effacé. Rien n\'est gardé.', endBtn:'Terminer',
+ stepsAdd2:['Fin et suppression']
+});
+for(const L of ['zh','en','fr']){I[L].steps=I[L].steps.concat(I[L].stepsAdd2);}
+
+const faults={noack:false,offline:false};
+function toast(msg,ms=2200){const el=$('toast');el.textContent=msg;el.classList.remove('hidden');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.add('hidden'),ms);}
+function inputNotYet(){toast(t('notyet'));}
+function setInbar(){$('inph').textContent=t('inph');$('drawer').classList.toggle('nobar',cur===0);}
+function applyOffline(){const el=$('offline');if(faults.offline){el.textContent=t('offline');el.classList.remove('hidden');}else el.classList.add('hidden');}
+$('f-noack').onchange=e=>{faults.noack=e.target.checked;if(cur===4)go(4);};
+$('f-offline').onchange=e=>{faults.offline=e.target.checked;applyOffline();if(faults.offline&&cur>0)drawer(say([t('offlineSay')],chips([[t('ok'),'go('+cur+')','primary']])),t('offlineSay'));else go(cur);};
+
+// plan step: four ways + consent
+STEPS[3].enter=function(){ st.routes=[{pts:ROUTE_GATE_IMM,eta:'11 '+t('min'),etaAt:[600,278]}]; st.staffVisible=false; lookAt([600,265],300); render(); setClock('14:02'); banner(null);
+ topcard(stepCard(t('imm'),null,1,5,`<span>⏱ <b>11 ${t('min')}</b></span><span>♿ ${t('stepfree')}</span>`));
+ drawer(say([t('firstAck'),t('plan')],`<div class="plans four"><button class="plan" onclick="go(6)"><div class="t">🚶 ${t('walk')}</div><div class="v">11 <small>${t('min')}</small></div><div class="m">${t('walkM')}</div></button><button class="plan hi" onclick="askConsent()"><div class="t">♿ ${t('call')}</div><div class="v">4 <small>${t('min')}</small></div><div class="m">${t('callM')}</div></button><button class="plan" onclick="go(6)"><div class="t">🦽 ${t('selfWc')}</div><div class="v">2 <small>${t('min')}</small></div><div class="m">${t('selfWcM')}</div></button><button class="plan" onclick="go(6)"><div class="t">🪑 ${t('rest')}</div><div class="v">30 <small>${t('m')}</small></div><div class="m">${t('restM')}</div></button></div>`),t('firstAck')+' '+t('plan')); };
+function askConsent(){drawer(say([t('consent')],chips([[t('consentY'),'go(4)','primary'],[t('consentN'),'go(3)','quiet']])),t('consent'));}
+
+// call step: with no-ack branch
+STEPS[4].enter=function(){ st.staff=P.staff0; st.staffVisible=false; st.routes=[{pts:ROUTE_GATE_IMM,alt:true}]; lookAt([610,285],200); render(); setClock('14:02');
+ const K=faults.noack; const times=K?['14:02','14:06','14:06','14:06','14:10']:['14:02','14:02','14:03','14:03','14:07']; let n=1; let extra='';
+ const draw=(eta,dist)=>drawer(`<div class="req"><div class="who"><div class="badge">S1</div><div><div class="name">${t('staffName')}</div><div class="vest">${t('vest')}</div></div><div class="eta"><b>${eta}</b><span>${t('min')} · ${dist} ${t('m')}</span></div></div><div class="big">${t('stay')}</div>${statusRow(n,times)}${extra}<div class="airport" onclick="openAirport()">${K&&n>=2?t('noackAirport'):t('airport',{s:[t('reqSent'),t('reqRecv'),t('reqAcc'),t('reqWay')][Math.min(n,4)-1]})}</div></div>${chips([[t('switchWalk'),'go(6)','quiet'],[t('cancel'),'go(3)','quiet']])}`);
+ draw('—','—'); speak(t('stay'));
+ if(!K){ later(900,()=>{n=2;draw('—','—')}); later(2000,()=>{n=3;draw(4,180);setClock('14:03')}); later(3200,()=>{n=4;st.staffVisible=true;draw(4,180);render(); moveAlong('staff',[P.staff0,[520,196],P.imm,P.pierJoin,P.pierMid,[660,316]],9000,()=>{draw(0,5);}); later(3000,()=>draw(3,120)); later(6000,()=>draw(2,70)); later(8000,()=>draw(1,30));}); }
+ else { later(1200,()=>{extra=`<div class="pill">${t('noack1')}</div>`;draw('—','—');setClock('14:04')}); later(3000,()=>{extra=`<div class="pill red">${t('noack2')}</div>`;n=2;draw('—','—');setClock('14:05');speak(t('noack2'))}); later(5200,()=>{extra=`<div class="pill">${t('noack3')}</div>`;n=3;draw(4,180);setClock('14:06')}); later(6400,()=>{n=4;st.staffVisible=true;draw(4,180);render(); moveAlong('staff',[P.staff0,[520,196],P.imm,P.pierJoin,P.pierMid,[660,316]],9000,()=>{draw(0,5);}); later(3000,()=>draw(3,120)); later(6000,()=>draw(2,70)); later(8000,()=>draw(1,30));}); }
+};
+
+// journey overview (tap "step N of 5")
+function openOverview(){const stops=[['ovGate','14:01',0],['ovImm','14:13',7],['ovBag','14:32',11],['ovExit','15:02',14],['ovLeave','15:03',15]];
+ modal(`<h1>${t('overview')}</h1><div class="ov">${stops.map(([k,tm,idx],i)=>{const next=stops[i+1]?stops[i+1][2]:999;const cls=cur>=next?'done':(cur>=idx?'cur':'');return `<div class="st ${cls}"><div class="dot2"></div><div><div class="l">${t(k)}</div><div class="m">${tm} · ${cls==='done'?t('ovDone'):cls==='cur'?t('ovCur'):t('ovNext')}</div></div></div>`}).join('')}</div><button class="close" onclick="modal(null)">${t('close')}</button>`);}
+document.addEventListener('click',e=>{const el=e.target.closest('.tc-prog');if(el)openOverview();const sr=e.target.closest('.src');if(sr&&!e.target.closest('.airport'))openSource();});
+function openSource(){modal(`<h1>${t('srcTitle')}</h1><div class="box" style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;font-size:17px;line-height:1.6"><b>${t('srcFrom')}</b>：${t('srcAirport')}<br><b>${t('srcAt')}</b>：14:31<br><b>${t('srcAge')}</b>：4 ${t('min')}</div><p style="font-size:16px;color:var(--muted)">${t('srcRule')}</p><button class="close" onclick="modal(null)">${t('close')}</button>`);}
+
+// settings with passport card on top
+const _openSettings=openSettings;
+openSettings=function(){_openSettings();const m=$('modal');m.insertAdjacentHTML('afterbegin',`<div class="pp"><div class="av"></div><div><b>${t('passport')}</b><small>${t('ppSub')}</small><small>${t('ppNote')}</small></div></div>`);};
+
+// help desk / POI taps
+function openDesk(){modal(`<h1>${t('deskTitle')}</h1><div class="list">${['d1','d2','d6','d3','d4','d5'].map(k=>`<div class="item"><div class="ic">${{d1:'🧭',d2:'🗣',d6:'🦽',d3:'🌻',d4:'👁',d5:'📝'}[k]}</div><div class="n" style="font-weight:500;font-size:16px">${t(k)}</div></div>`).join('')}</div><button class="close" onclick="modal(null)">${t('close')}</button>`);}
+map.addEventListener('click',e=>{const g=e.target.closest('.poig');if(!g)return;const id=g.getAttribute('data-id');if(id==='info')openDesk();else if(['coffee','noodle','tea'].includes(id))pickFood(id);else if(['taxi','ride','up','bus'].includes(id))pickLeave(id);});
+
+// airport view (tap the grey line)
+function openAirport(){const K=faults.noack;modal(`<h1>${t('airportTitle')}</h1><p style="color:var(--muted);font-size:15px;margin:0 0 8px">${t('airportNote')}</p>
+ <div class="ev"><span class="tm">14:02</span><span class="id">A17</span><span>${t('evA17')} · ${t('reqSent')}</span></div>
+ ${K?`<div class="ev bad"><span class="tm">14:05</span><span class="id">A17</span><span>${t('esc')} → Passenger Care</span></div><div class="ev"><span class="tm">14:06</span><span class="id">A17</span><span>${t('evAcc')}</span></div><div class="ev"><span class="tm">14:10</span><span class="id">A17</span><span>${t('evHere')}</span></div>`:`<div class="ev"><span class="tm">14:03</span><span class="id">A17</span><span>${t('evAcc')}</span></div><div class="ev"><span class="tm">14:07</span><span class="id">A17</span><span>${t('evHere')}</span></div>`}
+ <div class="ev"><span class="tm">14:13</span><span class="id">A18</span><span>${t('evA18')} · ${t('reqRecv')}</span></div>
+ <div class="ev"><span class="tm">14:49</span><span class="id">—</span><span>${t('evBag')}</span></div>
+ ${cur>=18?`<div class="ev bad"><span class="tm">15:07</span><span class="id">F-03</span><span>${t('evFb')}</span></div>`:''}
+ <button class="close" onclick="modal(null)">${t('close')}</button>`);}
+document.addEventListener('click',e=>{if(e.target.closest('.airport'))openAirport();});
+
+// finish & delete (step 19)
+const endStep={id:'end', enter(){ setClock('15:08'); st.you=P.exitB; st.routes=[]; st.pois=[]; st.endPin=P.exitB; lookAt(P.exitB,220); render(); topcard(stepCard(t('exitCard'),t('exitDone'),5,5));
+ drawer(say([`<b>${t('endTitle')}</b>`,t('endText')],chips([[t('endKeep'),"endChoice('keep')",'primary'],[t('endDel'),"endChoice('del')",'quiet']])),t('endTitle')+'. '+t('endText')); }};
+function endChoice(k){if(k==='del'){st.routes=[];st.pois=[];st.endPin=null;render();topcard(null);drawer(say([t('endDeleted')]),t('endDeleted'));}else{drawer(say([t('endKeep')+' 👋']));}}
+STEPS.push(endStep);
+// feedback beats lead to end
+const _fbSentEnter=STEPS[18].enter; STEPS[18].enter=function(){_fbSentEnter.call(this);const b=$('drawerbody');b.insertAdjacentHTML('beforeend',chips([[t('endBtn'),'go(19)','primary']]));};
+const _fbAnswer=fbAnswer; fbAnswer=function(a){_fbAnswer(a);$('drawerbody').insertAdjacentHTML('beforeend',chips([[t('endBtn'),'go(19)','primary']]));};
+
+// presenter: present mode + autoplay
+let autoOn=false; let autoTimers=[];
+const AUTO={0:[[2500,"pickLang(lang)"]],1:[[7000,"go(2)"]],2:[[3000,"go(3)"]],3:[[5000,"askConsent()"],[3500,"go(4)"]],4:[[15000,"go(5)"]],5:[[4500,"go(6)"]],7:[[7000,"go(8)"]],8:[[4500,"go(9)"]],9:[[6000,"go(10)"]],10:[[4000,"go(11)"]],11:[[6000,"go(12)"]],12:[[4500,"pickFood('tea')"],[4000,"go(13)"]],13:[[7000,"go(14)"]],14:[[8000,"go(15)"]],15:[[6000,"pickLeave('meet')"],[3500,"go(16)"]],16:[[4500,"go(17)"]],17:[[3500,"fbChoose(4)"],[3500,"go(18)"]],18:[[8000,"go(19)"]],19:[[5000,"endChoice('keep')"]]};
+function runAuto(){autoTimers.forEach(clearTimeout);autoTimers=[];if(!autoOn)return;const seq=AUTO[cur];if(!seq)return;let acc=0;for(const [d,code] of seq){acc+=d;autoTimers.push(setTimeout(()=>{if(autoOn)new Function(code)();},acc));}}
+function setAuto(v){autoOn=v;$('auto').textContent=autoOn?pres('autoOn'):pres('auto');runAuto();}
+$('auto').onclick=()=>setAuto(!autoOn);
+$('present').onclick=()=>document.body.classList.toggle('present');
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='p'||e.key==='P')document.body.classList.toggle('present');if(e.key==='a'||e.key==='A')setAuto(!autoOn);if(e.key==='Escape'){document.body.classList.remove('present');setAuto(false);}});
+const _go=go; go=function(i){_go(i);setInbar();applyOffline();runAuto();};
+
+// ---------- additions 3: departure static, journey code, staff card, surfaces (03:20) ----------
+const CODE='4821';
+Object.assign(I.zh,{
+ scNote:'只有这些，没有对话。她把手机给你看，你就知道前情。', code:'旅程码', staffCardT:'给工作人员看的', scNeed:'需要', scLang:'语言', scGo:'去哪', scTried:'已试过', scNext:'下一步', scNeedV:'轮椅 · 到了才要', scLangV:'中文 · 大字 · 请慢一点', scGoV:'入境检查 → 14 号转盘 → B 出口（有人接）', scTriedV:'无', scNextV:'推到入境检查排队区，出来后到 14 号转盘', showStaff:'给他看',
+ depT:'出发（静态示意）', depGate:'F52 登机口', depBoard:'登机', depLeave:'最晚出发', depWalk:'走过去', depBudget:'还有 35 分钟可以花。三样都行，去了还剩多少我写在旁边。', depIce:'冰酒店 · 走 6 分钟', depIceL:'去了还剩 22 分钟', depLounge:'休息室 · 走 4 分钟', depLoungeL:'去了还剩 26 分钟', depGateO:'直接去 F52 · 走 12 分钟', depGateL:'到了等 23 分钟', depNote:'探索模式只在能花的时间够长、而且你允许它开口时才说话。',
+ sfT:'同一拍在别的屏幕上', sfPhone:'老年机 · 来电 / 短信', sfStaff:'工作人员 · 手持', sfMeet:'接机人 · 短信链接', sfAirport:'机场协调台', sfKeys:'1 再说一遍 · 2 下一句 · 0 找人', sfSmsHint:'回 1 重发 · 回 2 下一步 · 回 0 找人 · 或直接打字',
+ stepsAdd3:['附：出发（静态）']
+});
+Object.assign(I.en,{
+ scNote:'Only this, no conversation. When she shows you the phone, you know the story so far.', code:'Journey code', staffCardT:'For the staff member', scNeed:'Needs', scLang:'Language', scGo:'Going to', scTried:'Tried', scNext:'Next', scNeedV:'Wheelchair · asked on arrival', scLangV:'Mandarin · large text · speak slowly', scGoV:'Immigration → carousel 14 → Exit B (someone meets her)', scTriedV:'Nothing yet', scNextV:'Push to the immigration queue; carousel 14 after', showStaff:'Show them',
+ depT:'Departure (static sketch)', depGate:'Gate F52', depBoard:'Boarding', depLeave:'Leave by', depWalk:'Walk', depBudget:'You have 35 minutes to spend. Any of these; I show what is left after each.', depIce:'Icewine shop · 6 min walk', depIceL:'22 min left after', depLounge:'Lounge · 4 min walk', depLoungeL:'26 min left after', depGateO:'Straight to F52 · 12 min walk', depGateL:'23 min wait at the gate', depNote:'Exploration mode only speaks when there is real time to spend and you have allowed it.',
+ sfT:'The same moment on other screens', sfPhone:'Feature phone · call / SMS', sfStaff:'Staff · handheld', sfMeet:'Person meeting her · SMS link', sfAirport:'Airport coordination desk', sfKeys:'1 repeat · 2 next · 0 a person', sfSmsHint:'Reply 1 resend · 2 next · 0 a person · or just type',
+ stepsAdd3:['Appendix: departure (static)']
+});
+Object.assign(I.fr,{
+ scNote:'Seulement ceci, pas de conversation. Quand elle vous montre le téléphone, vous connaissez le contexte.', code:'Code de trajet', staffCardT:'Pour l\'agent', scNeed:'Besoin', scLang:'Langue', scGo:'Destination', scTried:'Déjà essayé', scNext:'Suite', scNeedV:'Fauteuil · demandé à l\'arrivée', scLangV:'Mandarin · gros caractères · parler lentement', scGoV:'Contrôle → carrousel 14 → sortie B (on l\'attend)', scTriedV:'Rien encore', scNextV:'Jusqu\'à la file du contrôle ; carrousel 14 ensuite', showStaff:'Lui montrer',
+ depT:'Départ (esquisse statique)', depGate:'Porte F52', depBoard:'Embarquement', depLeave:'Partir avant', depWalk:'À pied', depBudget:'Vous avez 35 minutes. Les trois sont possibles ; j\'écris ce qu\'il reste après.', depIce:'Vin de glace · 6 min', depIceL:'22 min après', depLounge:'Salon · 4 min', depLoungeL:'26 min après', depGateO:'Directement F52 · 12 min', depGateL:'23 min d\'attente', depNote:'Le mode exploration ne parle que s\'il reste vraiment du temps et si vous l\'avez permis.',
+ sfT:'Le même instant sur d\'autres écrans', sfPhone:'Téléphone simple · appel / SMS', sfStaff:'Agent · terminal', sfMeet:'Personne qui l\'attend · lien SMS', sfAirport:'Poste de coordination', sfKeys:'1 répéter · 2 suivant · 0 une personne', sfSmsHint:'Répondre 1 renvoyer · 2 suivant · 0 une personne · ou écrire',
+ stepsAdd3:['Annexe : départ (statique)']
+});
+for(const L of ['zh','en','fr']){I[L].steps=I[L].steps.concat(I[L].stepsAdd3);}
+
+// journey code on the communication card and passport
+const _cardEnter=STEPS[8].enter; STEPS[8].enter=function(){_cardEnter.call(this);const c=$('modal').querySelector('.card');if(c)c.insertAdjacentHTML('beforeend',`<div class="l3">${t('code')} <span class="code" style="font-family:Menlo,monospace;font-weight:700">${CODE}</span></div>`);};
+const _openSettings2=openSettings; openSettings=function(){_openSettings2();const pp=$('modal').querySelector('.pp small');if(pp)pp.insertAdjacentHTML('afterend',`<small>${t('code')} ${CODE}</small>`);};
+
+// staff card (what the staff member sees when she shows the phone)
+function staffCardHtml(){return `<div class="sc"><div class="h"><b>${t('passport')}</b><span class="code">${CODE}</span></div><div class="r"><span class="k">${t('scNeed')}</span><span>${t('scNeedV')}</span></div><div class="r"><span class="k">${t('scLang')}</span><span>${t('scLangV')}</span></div><div class="r"><span class="k">${t('scGo')}</span><span>${t('scGoV')}</span></div><div class="r"><span class="k">${t('scTried')}</span><span>${t('scTriedV')}</span></div><div class="r"><span class="k">${t('scNext')}</span><span><b>${t('scNextV')}</b></span></div></div>`;}
+function openStaffCard(){modal(`<h1>${t('staffCardT')}</h1>${staffCardHtml()}<p class="note2">${t('scNote')}</p><button class="close" onclick="modal(null)">${t('close')}</button>`);}
+const _hereEnter=STEPS[5].enter; STEPS[5].enter=function(){_hereEnter.call(this);const b=$('drawerbody').querySelector('.chips');if(b)b.insertAdjacentHTML('afterbegin',`<button class="chip" onclick="openStaffCard()">${t('showStaff')}</button>`);};
+
+// departure static beat (appendix)
+const depStep={id:'departure', enter(){ setClock('16:05'); banner(null); st.hideLabels=true; st.you=[470,205]; st.staffVisible=false; st.endPin=null; st.routes=[{pts:[[470,205],[430,180],[380,150],[330,120]],eta:'12 '+t('min'),etaAt:[400,150]}]; st.pois=[{id:'ice',at:[500,160],ic:'🍷',label:t('depIce').split('·')[0]},{id:'lounge',at:[440,150],ic:'🛋',label:t('depLounge').split('·')[0]}]; lookAt([430,165],230); render();
+ topcard(`<div class="tc-row"><span class="dot"></span><div style="flex:1"><div class="tc-sub">${t('you')}</div></div><span class="tc-prog">${t('depT')}</span><button class="gear" onclick="openSettings()">⚙</button></div><div class="tc-row"><span class="pin"></span><div style="flex:1"><div class="tc-sub">${t('nextStep')}</div><div class="tc-main">${t('depGate')}</div></div></div><div class="dep"><div class="d"><b>16:40</b><span>${t('depBoard')}</span></div><div class="d"><b>16:05</b><span>${t('depLeave')}</span></div><div class="d blue"><b>12</b><span>${t('depWalk')} · ${t('min')}</span></div></div>`);
+ drawer(say([t('depBudget')],`<div class="tb"><div class="o"><span>🍷</span><span class="n">${t('depIce')}</span><span class="left">${t('depIceL')}</span></div><div class="o"><span>🛋</span><span class="n">${t('depLounge')}</span><span class="left">${t('depLoungeL')}</span></div><div class="o"><span>🚪</span><span class="n">${t('depGateO')}</span><span class="left warn">${t('depGateL')}</span></div></div><p class="note2">${t('depNote')}</p>`),t('depBudget')); }};
+STEPS.push(depStep);
+
+// surfaces: the same beat on other screens
+const SURF={
+ zh:{
+  3:{call:'Seeya 来电 14:02\n你在 F73 号门。\n可以自己走 11 分钟，有电梯；\n也可以叫工作人员推轮椅。\n按 1 再听，按 2 叫人。',sms:['你在 F73 号门。自己走 11 分钟（有电梯），或回 2 叫工作人员推轮椅。'],meet:['Hua 已落地，在 F73 号门。下一站入境检查。'],staff:'F73 · 未接单'},
+  4:{call:'Seeya 来电 14:03\n工作人员 1 四分钟后来接你，\n蓝色马甲。\n坐着别动。\n按 1 再听，按 2 下一句，按 0 找人。',sms:['工作人员 1 已接单，约 4 分钟到，蓝色马甲。坐着别动。'],meet:['14:03 工作人员已接单，4 分钟后接到 Hua，推去入境检查。','预计 B 出口 15:00 前后，改了我再说。'],staff:'A17 · 已接单 · F73'},
+  5:{call:'Seeya 来电 14:07\n工作人员到了，蓝色马甲。\n把这个电话给他听也行。\n按 0 找人。',sms:['工作人员 1 到了，蓝色马甲。'],meet:['14:07 工作人员接到 Hua 了，往入境检查走。'],staff:'A17 · 已到 · 交接中'},
+  7:{call:'Seeya 来电 14:13\n前面是入境检查，护照拿在手里。\n这里我不能替你回答。\n我已经把"我说中文"发给服务台。',sms:['前面是入境检查，护照拿在手里。我已把"我说中文"发给服务台。','海关里我不打电话。出来了回 2。'],meet:['14:13 Hua 到入境检查，语言请求已发服务台。海关里我不跟踪。'],staff:'A18 · 语言请求 · 已接收'},
+  11:{call:'Seeya 来电 14:32\n14 号转盘，大约 25 分钟出行李。\n可以坐一下或吃点东西。\n按 2 听附近有什么。',sms:['14 号转盘，约 25 分钟出行李（机场屏幕 14:31）。回 2 听附近能吃什么。'],meet:['14:32 过了海关，在等行李，预计 25 分钟。'],staff:'已交接 · 行李区'},
+  13:{call:'Seeya 来电 14:49\n屏幕改了，现在是 16 号转盘。\n往 16 号走，多 1 分钟。\n你的东西没错，是信息变了。',sms:['转盘改到 16 号（屏幕 14:49），我之前说的 14 号作废。多走 1 分钟。'],meet:['14:49 转盘改到 16 号，已告诉 Hua。'],staff:'转盘 14→16 · 已通知'},
+  14:{call:'Seeya 来电 15:02\n到 B 出口了。\n接你的人就在门外。',sms:['到 B 出口了，接你的人在门外。'],meet:['15:02 Hua 到 B 出口了。','有哪一步不对，回这条告诉我。'],staff:'已交接 · B 出口'},
+  15:{call:'Seeya 来电 15:03\n接你的人在 B 出口。\n没人接的话按 2 听怎么走。',sms:['接你的人在 B 出口。没人接回 2：打车 / UP / 公交怎么走。'],meet:['15:02 Hua 到 B 出口了。'],staff:'已交接 · 离开机场'}
+ },
+ en:{
+  3:{call:'Seeya calling 14:02\nYou are at Gate F73.\nYou can walk, 11 min, elevators;\nor ask for staff with a wheelchair.\nPress 1 to repeat, 2 to call staff.',sms:['You are at Gate F73. Walk 11 min (elevators) or reply 2 for staff with a wheelchair.'],meet:['Hua has landed, at Gate F73. Next: Immigration.'],staff:'F73 · not yet requested'},
+  4:{call:'Seeya calling 14:03\nStaff 1 will reach you in 4 minutes,\nblue vest.\nStay where you are.\nPress 1 repeat, 2 next, 0 a person.',sms:['Staff 1 accepted, about 4 min, blue vest. Stay where you are.'],meet:['14:03 Staff accepted; reaching Hua in 4 min, then Immigration.','Exit B around 15:00; I will tell you if it changes.'],staff:'A17 · accepted · F73'},
+  5:{call:'Seeya calling 14:07\nStaff is here, blue vest.\nYou can hand them this call.\nPress 0 for a person.',sms:['Staff 1 is here, blue vest.'],meet:['14:07 Staff has Hua, heading to Immigration.'],staff:'A17 · arrived · handover'},
+  7:{call:'Seeya calling 14:13\nImmigration ahead, passport in hand.\nI cannot answer for you here.\nI sent "I speak Mandarin" to the help desk.',sms:['Immigration ahead, passport in hand. I sent "I speak Mandarin" to the help desk.','No calls inside. Reply 2 when you are out.'],meet:['14:13 Hua at Immigration; language request sent. I do not track inside.'],staff:'A18 · language · received'},
+  11:{call:'Seeya calling 14:32\nCarousel 14, bags in about 25 minutes.\nYou can sit or eat.\nPress 2 to hear what is nearby.',sms:['Carousel 14, bags in ~25 min (screen 14:31). Reply 2 for food nearby.'],meet:['14:32 Through immigration, waiting for bags, ~25 min.'],staff:'handed over · baggage'},
+  13:{call:'Seeya calling 14:49\nThe screen changed: carousel 16 now.\nGo to 16, one more minute.\nYou did nothing wrong; the information changed.',sms:['Carousel changed to 16 (screen 14:49). 14 no longer applies. One more minute.'],meet:['14:49 Carousel changed to 16; Hua told.'],staff:'carousel 14→16 · told'},
+  14:{call:'Seeya calling 15:02\nYou are at Exit B.\nYour person is right outside.',sms:['At Exit B. Your person is right outside.'],meet:['15:02 Hua is at Exit B.','If a step went wrong, reply to this.'],staff:'handed over · Exit B'},
+  15:{call:'Seeya calling 15:03\nYour person is at Exit B.\nIf nobody comes, press 2 for how to leave.',sms:['Your person is at Exit B. Reply 2 if nobody comes: taxi / UP / bus.'],meet:['15:02 Hua is at Exit B.'],staff:'handed over · leaving'}
+ },
+ fr:{
+  3:{call:'Seeya appelle 14:02\nVous êtes à la porte F73.\nÀ pied 11 min, ascenseurs ;\nou un agent avec fauteuil.\n1 répéter, 2 appeler un agent.',sms:['Porte F73. À pied 11 min (ascenseurs) ou répondre 2 pour un agent avec fauteuil.'],meet:['Hua a atterri, porte F73. Ensuite : contrôle.'],staff:'F73 · pas encore demandé'},
+  4:{call:'Seeya appelle 14:03\nL\'agent 1 arrive dans 4 minutes,\ngilet bleu.\nRestez où vous êtes.\n1 répéter, 2 suivant, 0 une personne.',sms:['Agent 1 a accepté, env. 4 min, gilet bleu. Restez où vous êtes.'],meet:['14:03 Agent accepté ; auprès de Hua dans 4 min, puis contrôle.','Sortie B vers 15:00 ; je vous dis si ça change.'],staff:'A17 · accepté · F73'},
+  5:{call:'Seeya appelle 14:07\nL\'agent est là, gilet bleu.\nVous pouvez lui passer l\'appel.\n0 une personne.',sms:['L\'agent 1 est là, gilet bleu.'],meet:['14:07 L\'agent a Hua, vers le contrôle.'],staff:'A17 · arrivé · relais'},
+  7:{call:'Seeya appelle 14:13\nContrôle devant, passeport en main.\nJe ne réponds pas à votre place.\nJ\'ai envoyé « je parle mandarin » au comptoir.',sms:['Contrôle devant, passeport en main. « Je parle mandarin » envoyé au comptoir.','Pas d\'appel à l\'intérieur. Répondez 2 en sortant.'],meet:['14:13 Hua au contrôle ; demande de langue envoyée. Pas de suivi à l\'intérieur.'],staff:'A18 · langue · reçu'},
+  11:{call:'Seeya appelle 14:32\nCarrousel 14, bagages dans 25 minutes.\nAsseyez-vous ou mangez.\n2 pour ce qu\'il y a à côté.',sms:['Carrousel 14, bagages ~25 min (écran 14:31). Répondre 2 pour manger à côté.'],meet:['14:32 Contrôle passé, attend les bagages, ~25 min.'],staff:'relais fait · bagages'},
+  13:{call:'Seeya appelle 14:49\nL\'écran a changé : carrousel 16.\nAllez au 16, une minute de plus.\nVous n\'avez rien fait de mal.',sms:['Carrousel changé : 16 (écran 14:49). Le 14 ne vaut plus. Une minute de plus.'],meet:['14:49 Carrousel 16 ; Hua prévenue.'],staff:'carrousel 14→16 · prévenue'},
+  14:{call:'Seeya appelle 15:02\nVous êtes à la sortie B.\nVotre personne est juste dehors.',sms:['Sortie B. Votre personne est juste dehors.'],meet:['15:02 Hua est à la sortie B.','Si une étape a cloché, répondez ici.'],staff:'relais fait · sortie B'},
+  15:{call:'Seeya appelle 15:03\nVotre personne est à la sortie B.\nSinon, 2 pour comment partir.',sms:['Votre personne est à la sortie B. Sinon répondez 2 : taxi / UP / bus.'],meet:['15:02 Hua est à la sortie B.'],staff:'relais fait · départ'}
+ }
+};
+function br(x){return BRAND==='Seeya'?x:x.replace(/Seeya/g,BRAND);}
+function surfFor(){const tbl=SURF[lang]||SURF.en;let k=null;for(const key of Object.keys(tbl).map(Number).sort((a,b)=>a-b)){if(key<=cur)k=key;}return tbl[k||3];}
+function renderSurfaces(){const d=surfFor();const el=$('surfaces');
+ el.innerHTML=`<div class="sp"><h4>${t('sfPhone')}</h4><div class="fp"><div class="scr">${br(d.call)}</div><div class="keys"><span class="hi">1</span><span class="hi">2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>*</span><span class="hi">0</span><span>#</span></div></div><p class="note2" style="text-align:center">${t('sfKeys')}</p><div class="sms" style="margin-top:8px">${d.sms.map(x=>`<div class="b">${br(x)}</div>`).join('')}</div><p class="note2">${t('sfSmsHint')}</p></div>
+ <div class="sp"><h4>${t('sfStaff')}</h4>${staffCardHtml()}<p class="note2">${d.staff}</p></div>
+ <div class="sp"><h4>${t('sfMeet')}</h4><div class="sms"><div class="tm">${BRAND} · ${t('code')} ${CODE}</div>${d.meet.map(x=>`<div class="b">${br(x)}</div>`).join('')}<div class="b me">👍</div></div></div>
+ <div class="sp"><h4>${t('sfAirport')}</h4>${airportListHtml()}</div>`;}
+function airportListHtml(){const K=faults.noack;const rows=[['14:02','A17',t('evA17')+' · '+t('reqSent')]];
+ if(K){rows.push(['14:05','A17',t('esc')+' → Passenger Care'],['14:06','A17',t('evAcc')],['14:10','A17',t('evHere')]);}else{rows.push(['14:03','A17',t('evAcc')],['14:07','A17',t('evHere')]);}
+ rows.push(['14:13','A18',t('evA18')+' · '+t('reqRecv')],['14:49','—',t('evBag')]); if(cur>=18)rows.push(['15:07','F-03',t('evFb')]);
+ const lim={3:1,4:2,5:3,7:4,11:4,13:5,14:5}; let n=rows.length; for(const k of Object.keys(lim).map(Number).sort((a,b)=>a-b)){if(k<=cur)n=lim[k];} if(K&&cur>=4)n=Math.max(n,4);
+ return rows.slice(0,Math.min(n,rows.length)).map(r=>`<div class="ev${r[1]==='F-03'||r[2].includes('Passenger Care')?' bad':''}"><span class="tm">${r[0]}</span><span class="id">${r[1]}</span><span>${r[2]}</span></div>`).join('')+`<p class="note2">${t('airportNote')}</p>`;}
+let surfOn=false;
+function setSurf(v){surfOn=v;document.body.classList.toggle('surf',surfOn);$('surfaces').classList.toggle('hidden',!surfOn);if(surfOn)renderSurfaces();}
+$('surf').onclick=()=>setSurf(!surfOn);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='m'||e.key==='M')setSurf(!surfOn);if(e.key==='Escape')setSurf(false);});
+const PRES={zh:{next:'下一拍 ▶',reset:'重置',present:'🖥 演示模式 (P)',auto:'▶ 自动播放 (A)',autoOn:'⏸ 停止自动 (A)',surf:'🗂 同一拍在别的屏幕上 (M)',desk:'🖥 机场协调台（新窗口）',noack:'无人接单',offline:'断网',ttsOn:'🔈 朗读：开',ttsOff:'🔇 朗读：关',steps:'拍 · 点一行跳过去（演示模式里藏起来）',hint:'M 同一拍在别的屏幕上（老年机 / 工作人员 / 接机人 / 机场）。P 演示模式，A 自动播放，Esc 退出。← → 键翻拍。地图可以拖、滚轮缩放。所有人物、时间、请求状态都是模拟的，屏幕顶上一直写着。'},
+ en:{next:'Next beat ▶',reset:'Reset',present:'🖥 Presentation mode (P)',auto:'▶ Auto-play (A)',autoOn:'⏸ Stop auto (A)',surf:'🗂 Same moment on other screens (M)',desk:'🖥 Airport desk (new window)',noack:'no acceptance',offline:'offline',ttsOn:'🔈 Read aloud: on',ttsOff:'🔇 Read aloud: off',steps:'Beats · click a row to jump (hidden in presentation mode)',hint:'M = the same moment on other screens (feature phone / staff / meeting person / airport). P = presentation mode, A = auto-play, Esc = exit. ← → move between beats. Drag and scroll the map. Every person, time and request state is simulated; the banner at the top says so.'},
+ fr:{next:'Suivant ▶',reset:'Réinitialiser',present:'🖥 Mode présentation (P)',auto:'▶ Lecture auto (A)',autoOn:'⏸ Arrêter (A)',surf:'🗂 Même instant, autres écrans (M)',desk:'🖥 Poste de l\'aéroport (nouvelle fenêtre)',noack:'sans acceptation',offline:'hors ligne',ttsOn:'🔈 Lecture : oui',ttsOff:'🔇 Lecture : non',steps:'Temps · cliquez pour sauter (caché en mode présentation)',hint:'M = même instant sur d\'autres écrans. P = mode présentation, A = lecture auto, Échap = quitter. ← → pour changer de temps. Carte déplaçable et zoomable. Tout est simulé ; la bannière en haut le dit.'}};
+function pres(k){return (PRES[lang]||PRES.en)[k];}
+function renderPresenter(){$('next').textContent=pres('next');$('reset').textContent=pres('reset');$('present').textContent=pres('present');$('auto').textContent=autoOn?pres('autoOn'):pres('auto');$('surf').textContent=pres('surf');$('deskbtn').textContent=pres('desk');$('f-noack').nextSibling.textContent=' '+pres('noack');$('f-offline').nextSibling.textContent=' '+pres('offline');$('tts').textContent=ttsOn?pres('ttsOn'):pres('ttsOff');$('stepsh').textContent=pres('steps');$('hint').textContent=pres('hint');}
+const _go2=go; go=function(i){_go2(i);if(surfOn)renderSurfaces();renderPresenter();try{localStorage.setItem('seeya-demo-step',String(cur));localStorage.setItem('seeya-demo-noack',faults.noack?'1':'0');}catch(e){}};
+$('f-noack').addEventListener('change',()=>{try{localStorage.setItem('seeya-demo-noack',faults.noack?'1':'0');}catch(e){}});
+
+let cur=0;
+function go(i){clearTimers();modal(null);st.hideLabels=false;cur=Math.max(0,Math.min(STEPS.length-1,i));STEPS[cur].enter();document.querySelectorAll('#steps li').forEach((li,j)=>li.classList.toggle('cur',j===cur));if(window.speechSynthesis&&!ttsOn)speechSynthesis.cancel();}
+function pickLang(c){if(I[c]){lang=c;$('langsel').value=c;document.documentElement.lang=TTS_LANG[c];buildSteps();$('simlabel').textContent=t('sim');go(1);}else{$('langnote').innerHTML=`<div class="note">${UNSUP[c]||''}<br>${I.en.unsupported}</div>`;}}
+function pickFood(id){st.pois.forEach(p=>p.hi=(p.id===id));const at=P[id==='coffee'?'coffee':id==='noodle'?'noodle':'tea'];st.routes=[{pts:[[500,200],at],eta:(id==='tea'?'1':id==='coffee'?'2':'3')+' '+t('min'),etaAt:[(500+at[0])/2,(200+at[1])/2-8]},{pts:ROUTE_IMM_BAG,alt:true}];render();topcard(stepCard(t('bagCard'),t('remind'),3,5,`<span>🕒 <b>25 ${t('min')}</b></span><span class="src">${t('bagSrc')}</span>`));drawer(say([t('remind')],chips([[t('ok'),'go(13)','primary']])),t('remind'));}
+function fbAnswer(a){drawer(say([a==='ok'?t('fbThanks'):t('fbSorry')]),a==='ok'?t('fbThanks'):t('fbSorry'));}
+function buildSteps(){const ol=$('steps');ol.innerHTML=STEPS.map((s,i)=>`<li${i===cur?' class="cur"':''} onclick="go(${i})">${i+1}. ${t('steps')[i]||s.id}</li>`).join('');}
+$('next').onclick=()=>go(cur+1);$('prev').onclick=()=>go(cur-1);$('reset').onclick=()=>go(0);
+$('langsel').onchange=e=>{lang=e.target.value;document.documentElement.lang=TTS_LANG[lang];buildSteps();$('simlabel').textContent=t('sim');go(cur);};
+
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(cur+1)}if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1)}});
+window.addEventListener('resize',()=>{map.setAttribute('viewBox',vb());render();});
+$('langsel').value=lang;buildSteps();$('simlabel').textContent=t('sim');go(0);
+(function(){const bm=location.hash.match(/brand=([^&]+)/);if(bm){BRAND=decodeURIComponent(bm[1]);document.title=BRAND+' · Hua';}if(/shot=1/.test(location.hash))document.body.classList.add('shot');const m=location.hash.match(/step=(\d+)/);const l=location.hash.match(/lang=(\w+)/);if(l&&I[l[1]]){lang=l[1];$('langsel').value=lang;buildSteps();$('simlabel').textContent=t('sim');}if(m){settings.tts=false;applySettings();go(+m[1]);}
+if(/hc=1/.test(location.hash)){settings.hc=true;}if(/big=1/.test(location.hash)){settings.big=true;}applySettings();if(/settings=1/.test(location.hash))openSettings();if(/noack=1/.test(location.hash)){faults.noack=true;$('f-noack').checked=true;go(cur);}if(/offline=1/.test(location.hash)){faults.offline=true;$('f-offline').checked=true;applyOffline();}if(/overview=1/.test(location.hash))openOverview();if(/source=1/.test(location.hash))openSource();if(/desk=1/.test(location.hash))openDesk();if(/airport=1/.test(location.hash))openAirport();if(/consent=1/.test(location.hash))askConsent();if(/toast=1/.test(location.hash))inputNotYet();if(/end=del/.test(location.hash))endChoice('del');if(/surfaces=1/.test(location.hash))setSurf(true);if(/staff=1/.test(location.hash))openStaffCard();if(/food=1/.test(location.hash))pickFood('tea');if(/leave=(\w+)/.test(location.hash))pickLeave(location.hash.match(/leave=(\w+)/)[1]);if(/fbstep=(\d+)/.test(location.hash))fbChoose(+location.hash.match(/fbstep=(\d+)/)[1]);})();
+</script>
+</body>
+</html>
