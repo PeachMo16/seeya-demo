@@ -1,6 +1,6 @@
 Seeya / Accessibility Map - research demo (all data simulated)
 
-Three interactive pages and one PDF. The pages need a computer browser (Chrome, Safari or Edge): double-click, no install, no internet. On a phone, or in an email preview, open Seeya-demo-walkthrough.pdf instead; the pages will look empty there because previews do not run scripts.
+Three interactive pages and one PDF. Double-click, no install, no internet. index.html (the passenger's phone) also works on a real phone: it fills the screen, with a beat bar under it. desk.html and airline.html need a computer browser (Chrome, Safari or Edge). In an email preview, open Seeya-demo-walkthrough.pdf instead; the pages look empty there because previews do not run scripts.
 
 index.html   - the passenger's phone: one arriving passenger, Hua (72, from Shanghai, Mandarin, asks for a wheelchair on arrival).
                Press the right-arrow key to move to the next beat. Language selector on the right (English / Francais / Chinese).
