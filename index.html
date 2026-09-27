@@ -124,6 +124,9 @@ html,body{margin:0;height:100%;background:#1c1f26;font-family:-apple-system,"Pin
   #mobilebar span{min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
   #presenter{width:100%;padding:16px}
   body.present #mobilebar{display:flex}
+  /* the fixed link bar covered the bottom third of a phone screen; on a phone it sits at the end of the page instead */
+  #seeya-nav{position:static!important;gap:10px 14px!important;padding:10px 14px!important}
+  #seeya-nav span:nth-of-type(2){display:none}
 }
 
 .gear{border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--muted);padding:0 0 0 6px}
