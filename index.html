@@ -112,7 +112,19 @@ html,body{margin:0;height:100%;background:#1c1f26;font-family:-apple-system,"Pin
 .pin-end{fill:var(--red);stroke:#fff;stroke-width:1.2}
 @media (max-height:900px){#phone{transform:scale(.9)}}
 @media (max-height:800px){#phone{transform:scale(.8)}}
-@media (max-width:760px){#stage{flex-direction:column;gap:12px}#presenter{width:100%}#phone{transform:scale(.72)}}
+/* a real phone: the page is the phone. no bezel, no scaling, a slim beat bar under the screen, presenter below */
+#mobilebar{display:none}
+@media (max-width:760px){
+  #stage{flex-direction:column;align-items:stretch;justify-content:flex-start;height:auto;min-height:100%;gap:0;padding:0}
+  #phone{width:100%;height:calc(100vh - 48px);height:calc(100dvh - 48px);border-radius:0;padding:0;transform:none;box-shadow:none}
+  #screen{border-radius:0}
+  #mobilebar{display:flex;align-items:center;gap:8px;height:48px;padding:0 10px;background:#12151b;color:#c9d1dc;font-size:14px}
+  #mobilebar button{flex:1;height:36px;border:1px solid #3a4152;border-radius:8px;background:#232833;color:#fff;font-size:16px;cursor:pointer}
+  #mobilebar button.primary{background:#1b5fd1;border-color:#1b5fd1}
+  #mobilebar span{min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+  #presenter{width:100%;padding:16px}
+  body.present #mobilebar{display:flex}
+}
 
 .gear{border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--muted);padding:0 0 0 6px}
 .toggles{display:flex;flex-direction:column;gap:10px;margin-top:6px}
@@ -210,6 +222,7 @@ body.surf #presenter{display:none}
     <div id="offline" class="hidden"></div><div id="toast" class="hidden"></div>
     <div id="modal" class="hidden"></div>
   </div></div>
+  <div id="mobilebar"><button onclick="go(cur-1)" aria-label="previous beat">◀</button><span id="mstep">1/21</span><button class="primary" onclick="go(cur+1)" aria-label="next beat">▶</button></div>
   <div id="surfaces" class="hidden"></div>
   <div id="presenter">
     <h2>Presenter</h2>
@@ -682,7 +695,7 @@ const _go2=go; go=function(i){_go2(i);if(surfOn)renderSurfaces();renderPresenter
 $('f-noack').addEventListener('change',()=>{try{localStorage.setItem('seeya-demo-noack',faults.noack?'1':'0');}catch(e){}});
 
 let cur=0;
-function go(i){clearTimers();modal(null);st.hideLabels=false;cur=Math.max(0,Math.min(STEPS.length-1,i));STEPS[cur].enter();document.querySelectorAll('#steps li').forEach((li,j)=>li.classList.toggle('cur',j===cur));if(window.speechSynthesis&&!ttsOn)speechSynthesis.cancel();}
+function go(i){clearTimers();modal(null);st.hideLabels=false;cur=Math.max(0,Math.min(STEPS.length-1,i));STEPS[cur].enter();document.querySelectorAll('#steps li').forEach((li,j)=>li.classList.toggle('cur',j===cur));const ms=document.getElementById('mstep');if(ms)ms.textContent=(cur+1)+'/'+STEPS.length;if(window.speechSynthesis&&!ttsOn)speechSynthesis.cancel();}
 function pickLang(c){if(I[c]){lang=c;$('langsel').value=c;document.documentElement.lang=TTS_LANG[c];buildSteps();$('simlabel').textContent=t('sim');go(1);}else{$('langnote').innerHTML=`<div class="note">${UNSUP[c]||''}<br>${I.en.unsupported}</div>`;}}
 function pickFood(id){st.pois.forEach(p=>p.hi=(p.id===id));const at=P[id==='coffee'?'coffee':id==='noodle'?'noodle':'tea'];st.routes=[{pts:[[500,200],at],eta:(id==='tea'?'1':id==='coffee'?'2':'3')+' '+t('min'),etaAt:[(500+at[0])/2,(200+at[1])/2-8]},{pts:ROUTE_IMM_BAG,alt:true}];render();topcard(stepCard(t('bagCard'),t('remind'),3,5,`<span>🕒 <b>25 ${t('min')}</b></span><span class="src">${t('bagSrc')}</span>`));drawer(say([t('remind')],chips([[t('ok'),'go(13)','primary']])),t('remind'));}
 function fbAnswer(a){drawer(say([a==='ok'?t('fbThanks'):t('fbSorry')]),a==='ok'?t('fbThanks'):t('fbSorry'));}
